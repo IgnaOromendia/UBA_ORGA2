@@ -268,3 +268,36 @@ strArrayDelete:
         pop rbp
         ret
 
+;void  strArraySwap(str_array_t* a, uint8_t i, uint8_t j); [rdi] [rsi] [rdx]
+strArraySwap:
+    push rbp
+    mov rbp, rsp
+    
+    ; seteo 0s
+    xor rcx, rcx
+    xor r8, r8
+    xor r9, r9
+
+    mov rcx, [rdi]  ; obtengo el size
+
+    ; veo si i esta en rango
+    cmp sil, cx     ; i ≥ cx?
+    jge .nada
+    cmp sil, r8     ; i < 0
+    jl .nada
+
+    ; veo si i esta en rango
+    cmp dx, cx      ; j ≥ cx?
+    jge .nada
+    cmp dx, r8      ; j < 0
+    jl .nada
+
+    mov r8, [rdi+rsi*8] ; hago una copia de i
+    mov r9, [rdi+rdx*8] ; hago una copia de j
+
+    mov [rdi+rsi*8], r9 ; arr[i] = copia_j
+    mov [rdi+rdx*8], r8 ; arr[j] = copia_i
+
+    .nada:
+        pop rbp
+        ret
