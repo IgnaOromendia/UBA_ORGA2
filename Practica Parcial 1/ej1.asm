@@ -96,8 +96,8 @@ strArrayNew:
     mov [rax+1], r12    ; capcity = capacity (guardado en r12)
     mov [rax+8], r13    ; data = r13 (donde empieza el array)
 
-    pop r12
     pop r13
+    pop r12
     pop rbp
     ret
 
@@ -138,10 +138,10 @@ strArrayAddLast:
     mov [r12], r14b      ; guardamos el nuevo size
 
     .nada:
-        pop r12
-        pop r13
-        pop r14
         pop r15
+        pop r14
+        pop r13
+        pop r12
         pop rbp
         ret
 
@@ -214,15 +214,57 @@ strArrayRemove:
         jmp .nada
 
     .nada:
-        pop r12
-        pop r13
-        pop r14
         pop r15
+        pop r14
+        pop r13
+        pop r12
         pop rbp
         ret
 
 
 ; void  strArrayDelete(str_array_t* a)
 strArrayDelete:
+    push rbp
+    mov rbp, rsp
+    push r12
+    push r13
+    push r14
+    sub rsp, 8
 
+    xor rsi, rsi
+    xor rcx, rcx
+    xor r12, r12
+    xor r13, r13
+    xor r14, r14 
+
+    mov r13, rdi    ; guardo mi puntero al struct
+
+    mov r12, [r13]  ; obtengo el size
+    cmp r12, rcx    ; size == 0?
+    je .salteaCiclo
+
+    mov r14, [r13+8]        ; punetro al array
+    .ciclo:
+        mov rdi, [r14]
+        call free
+        inc r14b
+        cmp r14b, r12b
+        je .liberar
+        jmp .ciclo
+
+    .liberar:
+        mov rdi, [r13+1]    ; obtengo capacity
+        imul rdi, 8         ; multiplico por 8 por lo que ocupa cada puntero
+        call free           ; libero capacity
+        mov rdi, [r13+8]    ; obtengo el punetro al arr
+        call free           ; libero arr
+        jmp .fin
+
+    .fin:
+        add rsp, 8
+        pop r14
+        pop r13
+        pop r12
+        pop rbp
+        ret
 
