@@ -1,5 +1,5 @@
 CC=cc
-CFLAGS= -std=c11 -Wall -Wextra -pedantic -O0 -g -lm -Wno-unused-variable -Wno-unused-parameter
+CFLAGS= -std=c11 -Wall -Wextra -pedantic -O0 -g -lm -Wno-unused-variable -Wno-unused-parameter -no-pie
 NASM=nasm
 NASMFLAGS=-f elf64 -g -F DWARF
 
@@ -15,7 +15,7 @@ main: main.c $(OBJS)
 
 tester.o: tester.c checkpoints.h test-utils.h
 	$(CC) $(CFLAGS) -c $< -o $@
-
+ 
 checkpoint2_c.o: checkpoint2.c checkpoints.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
