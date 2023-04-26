@@ -26,8 +26,8 @@ invertirBytes_asm:
 	je .fin
 
 	; swapeo entre n y m en la mascara
-	mov byte [mask + rsi], dl
-	mov byte [mask + rdx], sil
+	mov byte [mask + r8], r9b
+	mov byte [mask + r9], r8b
 
 	movdqu xmm0, [rdi]
 	movdqu xmm1, [mask]
@@ -39,8 +39,8 @@ invertirBytes_asm:
 	movdqu [rdi], xmm0
 
 	; revierto la máscara para los otros tests
-	mov byte [mask + rsi], sil
-	mov byte [mask + rdx], dil
+	mov byte [mask + r8], r8b
+	mov byte [mask + r9], r9b
 
 	.fin:
 	pop rbp
