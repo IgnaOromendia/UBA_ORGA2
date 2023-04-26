@@ -103,7 +103,7 @@ product_2_f:
 	mulss xmm0, xmm1 ; multiplicamos
 	cvttss2si rax, xmm0 ; convertimos el resultado flotante a entero
 	
-	mov [rdi], eax ; guardamos el resultado en el destino
+	mov [rdi], rax ; guardamos el resultado en el destino
 
 	pop rbp
 	ret
