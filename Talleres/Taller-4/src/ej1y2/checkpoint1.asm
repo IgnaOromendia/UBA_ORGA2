@@ -15,14 +15,14 @@ invertirBytes_asm:
 	; seteo en 0
 	xor r8, r8
 	xor r9, r9
-	xor xmm0, xmm0
-	xor xmm1, xmm1
+	pxor xmm0, xmm0
+	pxor xmm1, xmm1
 
 	mov r8b, sil
 	mov r9b, dl
 
 	; me fijo si son iguales
-	cmp byte r8, byte r9
+	cmp r8, r9
 	je .fin
 
 	; swapeo entre n y m en la mascara
