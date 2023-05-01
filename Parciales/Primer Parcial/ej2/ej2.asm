@@ -66,10 +66,11 @@ miraQueCoincidencia:
         ; desmpaquto mi pixel para multiplicar
         punpcklbw xmm0, xmm0            ; me quedaron repetidos
         psllw xmm0, 4                   ; elimino los repetdios 
-        ; NO LLEGUE A TERMINAR ASI QUE ESCRIBO LA IDEA
         ; multipico
         ; aca multiplco el xmm0 con cada const rgb dependiendo el offset rgb
-        ; empaquto
+        
+        ; hago la combinacion de colores
+        ; ... 
         ; lo vuelvo a pasar a un registro de 32 con un convert
         mov [rbx], r14d                 ; guardo en destino 
         lea r12, [r12 + OFFSET_PIXEL]   ; voy al siguiente pixel de A
