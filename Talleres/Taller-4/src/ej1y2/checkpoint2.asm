@@ -34,9 +34,11 @@ checksum_asm:
 	xor r13, r13	;
 
 	; itA = 0, itB = 128, itC = 256
-	lea rcx, rdi
-	lea r9, rdi + 128
-	lea r8, rdi + 256 
+	mov rcx, rdi
+	mov r9, rdi
+	add r9, 128
+	mov r8, rdi
+	add r8, 256
 
 	; recorremos el ciclo en busca del error
 	.ciclo:
@@ -58,42 +60,42 @@ checksum_asm:
 		; suma 7
 		extractps r12, xmm0, 3				; Obtengo A7+B7
 		imul r12, 8							; multiplico por 8
-		pinsrd xmm0, r12, 3					; inserto de vuelta multiplicado
+		pinsrd xmm0, r12d, 3					; inserto de vuelta multiplicado
 		xor r12, r12
 		; suma 6
 		extractps r12, xmm0, 2				; Obtengo A6+B6
 		imul r12, 8							; multiplico por 8
-		pinsrd xmm0, r12, 2					; inserto de vuelta multiplicado
+		pinsrd xmm0, r12d, 2					; inserto de vuelta multiplicado
 		xor r12, r12
 		; suma 5
 		extractps r12, xmm0, 1				; Obtengo A5+B5
 		imul r12, 8							; multiplico por 8
-		pinsrd xmm0, r12, 1					; inserto de vuelta multiplicado
+		pinsrd xmm0, r12d, 1					; inserto de vuelta multiplicado
 		xor r12, r12
 		; suma 4
 		extractps r12, xmm0, 0				; Obtengo A4+B4
 		imul r12, 8							; multiplico por 8
-		pinsrd xmm0, r12, 0					; inserto de vuelta multiplicado
+		pinsrd xmm0, r12d, 0					; inserto de vuelta multiplicado
 		xor r12, r12
 		; suma 3
 		extractps r12, xmm1, 3				; Obtengo A3+B3
 		imul r12, 8							; multiplico por 8
-		pinsrd xmm1, r12, 3					; inserto de vuelta multiplicado
+		pinsrd xmm1, r12d, 3					; inserto de vuelta multiplicado
 		xor r12, r12
 		; suma 2
 		extractps r12, xmm1, 2				; Obtengo A2+B2
 		imul r12, 8							; multiplico por 8
-		pinsrd xmm1, r12, 2					; inserto de vuelta multiplicado
+		pinsrd xmm1, r12d, 2					; inserto de vuelta multiplicado
 		xor r12, r12
 		; suma 1
 		extractps r12, xmm1, 1				; Obtengo A1+B1
 		imul r12, 8							; multiplico por 8
-		pinsrd xmm1, r12, 1					; inserto de vuelta multiplicado
+		pinsrd xmm1, r12d, 1					; inserto de vuelta multiplicado
 		xor r12, r12
 		; suma 0
 		extractps r12, xmm1, 0				; Obtengo A0+B0
 		imul r12, 8							; multiplico por 8
-		pinsrd xmm1, r12, 0					; inserto de vuelta multiplicado
+		pinsrd xmm1, r12d, 0					; inserto de vuelta multiplicado
 		xor r12, r12
 		
 		; comparamos con C
