@@ -119,6 +119,10 @@ checksum_asm:
 		cmp r12, 1
 		jne .noIguales
 
+		lea rcx, [rcx + OFFSET_SIGUIENTE]
+		lea r9,  [r9  + OFFSET_SIGUIENTE]
+		lea r8,  [r8  + OFFSET_SIGUIENTE]
+
 		jmp .ciclo
 
 		.noIguales:
