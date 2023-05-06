@@ -57,38 +57,42 @@ miraQueCoincidencia:
         lea r13, [r13 + OFFSET_PIXEL_SRC]       ; voy al siguiente pixel de B
         lea rbx, [rbx + OFFSET_PIXEL_DESTINO]   ; voy al siguiente pixel de destino
         inc r8                                  ; i++
+        jmp .ciclo
 
-        .sonIguales
+        .sonIguales:
         ; muevo mis archivos a xmm
         movd xmm0, r14d            ; [0|0|0|r14d] - siendo r14d = [B|G|R|A]
 
         ; desmpaquto mi pixel para multiplicar
         punpcklbw xmm0, xmm0            ; me quedaron repetidos [0|..|B|B|G|G|R|R|A|A]
         punpcklbw xmm0, xmm0            ; me quedaron repetidos [B|B|B|B|G|G|G|G|R|R|R|R|A|A|A|A]
-        psrlw xmm0, 3                   ; elimino los repetdios [0|0|0|B|0|0|0|G|0|0|0|R|0|0|0|A]
+        psrld xmm0, 24                   ; elimino los repetdios [0|0|0|B|0|0|0|G|0|0|0|R|0|0|0|A]
 
         ; multiplco el xmm0 con cada const rgb dependiendo el offset rgb
         ; extraigo uno por uno de los colores en el orden que son recibidos
         ; quiero extraer 8 bits de 0s y 8 bits de data
         ; BLUE
         extractps r9, xmm0, 3          ; otbengo [0|0|0|B] en r9
-        imul r9, gris_blue             ; BLUE(px) * 0.114
+        cvtsi2ss xmm1, r9              ; convierto de entero a punto flotante
+        mulss xmm1, [gris_blue]        ; BLUE(px) * 0.114
+        extractps r9, xmm1, 0          ; otbengo la dw multiplicada en r9
         pinsrd xmm0, r9d, 3            ; seteo en el xmm0 la parte de blue multiplicada
 
         ; GREEN
-        xor r9, r9                     ; seteo en 0
         extractps r9, xmm0, 2          ; otbengo [0|0|0|G] en r9
-        imul r9, gris_green            ; GREEN(px) * 0.587
+        cvtsi2ss xmm1, r9              ; convierto de entero a punto flotante 
+        mulss xmm1, [gris_green]         ; GREEN(px) * 0.587
+        extractps r9, xmm1, 0          ; otbengo la dw multiplicada en r9
         pinsrd xmm0, r9d, 2            ; seteo en el xmm0 la parte de green multiplicada
 
         ; RED
-        xor r9, r9                     ; seteo en 0
         extractps r9, xmm0, 1          ; otbengo [0|0|0|R] en r9
-        imul r9, gris_red              ; RED(px) * 0.299
+        cvtsi2ss xmm1, r9              ; convierto de entero a punto flotante
+        mulss xmm1, [gris_red]         ; RED(px) * 0.299
+        extractps r9, xmm1, 0          ; otbengo la dw multiplicada en r9
         pinsrd xmm0, r9d, 1            ; seteo en el xmm0 la parte de red multiplicada
 
         ; ALFA - como el alfa va a ser ignorado lo seteo en 0 para la suma
-        xor r9, r9                     ; seteo en 0
         pinsrd xmm0, r9d, 0            ; seteo en el xmm0 0 al alfa para ignroarlo
 
         ; unifico los colores - ahroa tengo [B|G|R|0] en xmm0
@@ -118,6 +122,7 @@ miraQueCoincidencia:
         lea rbx, [rbx + OFFSET_PIXEL_DESTINO]   ; voy al siguiente pixel de destino
         inc r8                                  ; i++
         pxor xmm0, xmm0
+        pxor xmm1, xmm1
         xor r9, r9
         xor r14, r14
         jmp .ciclo
