@@ -68,7 +68,7 @@ TEST(test_alternate_sum_8) {
 TEST(test_product_2_f) {
 	for (int i = 0; i < 100; i++) {
 		shuffle(1000);
-		sprintf(assert_name, "alternate_sum_8(&result, %u, %.2f)", x[0], f[0]);
+		sprintf(assert_name, "test_product_2_f(&result, %u, %.2f)", x[0], f[0]);
 
 		uint32_t result = -1;
 		product_2_f(&result, x[0], f[0]);

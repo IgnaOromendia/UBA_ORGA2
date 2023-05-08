@@ -98,12 +98,13 @@ product_2_f:
 	; x1 * f1
 	push rbp
 	mov rbp, rsp
-
-	cvtsi2ss xmm1, rsi ; convertimos el entero en float
-	mulss xmm0, xmm1 ; multiplicamos
-	cvttss2si rax, xmm0 ; convertimos el resultado flotante a entero
 	
-	mov [rdi], rax ; guardamos el resultado en el destino
+	pxor xmm1, xmm1		; seteamos en 0
+	cvtsi2ss xmm1, esi 	; convertimos el entero en float
+	mulps xmm0, xmm1 	; multiplicamos
+	cvttss2si eax, xmm0 	; convertimos el resultado flotante a entero
+	
+	mov [rdi], eax 		; guardamos el resultado en el destino
 
 	pop rbp
 	ret
