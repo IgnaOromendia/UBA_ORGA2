@@ -1,0 +1,14 @@
+Este codigo forma parte de la ejercitación de la segunda parte de la materia Organizacion del Computador II.
+
+Los pasos para compilar son:
+
+1. Ejecutar 'make' desde una consola en la carpeta actual.
+
+    $ make
+
+2. Ejecutar 'bochs' desde una consola en la carpeta actual.
+
+    $ bochs -q
+
+
+
