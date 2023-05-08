@@ -10,9 +10,11 @@ global start
 ; COMPLETAR - Agreguen declaraciones extern según vayan necesitando
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
-%define CS_RING_0_SEL 8         ; estos son los mismos define que en cdt del defines.h
-%define DS_RING_0_SEL 24 
-
+; estos son los mismos define que en cdt del defines.h
+%define CS_RING_0_SEL 8         
+%define DS_RING_0_SEL 24
+;%define CS_RING_3_SEL 
+;%define DS_RING_3_SEL 
 
 BITS 16
 ;; Saltear seccion de datos
@@ -35,6 +37,7 @@ start_pm_len equ    $ - start_pm_msg
 BITS 16
 start:
     ; COMPLETAR - Deshabilitar interrupciones
+    
 
     ; Cambiar modo de video a 80 X 50
     mov ax, 0003h
