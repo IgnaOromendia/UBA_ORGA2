@@ -38,17 +38,17 @@ miraQueCoincidencia:
     mov rbx, rcx    ; para iterar el destino
 
     .ciclo:
-        mov r14d, [r12]                         ; levanto pixel A
-        mov r15d, [r13]                         ; levanto pixel B
         cmp r8, rdx                             ; if (i < N) continue
         je .fin
+        mov r14d, [r12]                         ; levanto pixel A
+        mov r15d, [r13]                         ; levanto pixel B
         cmp r14, r15                            ; if (A[i][j] == B[i][j]) jmp else setarlos en 1
         je .sonIguales
 
         ; si no son iguales hago lo siguiente
         xor r14, r14                            ; seteo en 0
         add r14b, 255                           ; r14 = 255
-        mov [rbx], r14                          ; guardo en destino 
+        mov [rbx], r14b                         ; guardo en destino 
         jmp .avanzar
 
         .sonIguales:
@@ -68,8 +68,7 @@ miraQueCoincidencia:
         haddps xmm0, xmm0 ; [..|..|..|B+G+R+0] los .. significan que es lo mismo
 
         ; convierto de float a interger con truncado y extraigo
-        cvttps2dq xmm0, xmm0   ; [..|..|..|B+G+R] pero ahora seria un integer
-        extractps r9, xmm0, 0  ; extraigo la suma
+        cvttss2si r9, xmm0   ; [..|..|..|B+G+R] pero ahora seria un integer
 
         ; como se que maximo es 255 se que puedo pedir solo 1 byte
         mov [rbx], r9b                          ; guardo en destino 
@@ -80,7 +79,6 @@ miraQueCoincidencia:
         lea rbx, [rbx + OFFSET_PIXEL_DESTINO]   ; voy al siguiente pixel de destino
         inc r8                                  ; i++
         pxor xmm0, xmm0
-        pxor xmm1, xmm1
         xor r9, r9
         jmp .ciclo
         

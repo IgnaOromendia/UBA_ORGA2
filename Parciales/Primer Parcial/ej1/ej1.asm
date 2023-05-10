@@ -50,8 +50,6 @@ templosClasicos:
     ; seteo en 0
     xor rdi, rdi    ; puntero al nuevo arreglo  
     xor rsi, rsi    ; donde me voy a mover por el nuevo arreglo
-    xor r8, r8      ; n
-    xor r9, r9      ; m
     xor r15, r15    ; nombre
     xor rdx, rdx    ; iterador i
     xor rcx, rcx    ; copia de n
@@ -78,7 +76,7 @@ templosClasicos:
         cmp r8, r9                          ; if (2n+1 == m)
         jne .ciclo
         ; agrego al nuevo arreglo
-        mov r15, [r14 + OFFSET_NOMBRE]      ; obtengo nombre
+        mov r15, [r14 + OFFSET_NOMBRE - 24] ; obtengo nombre
         mov [rsi + OFFSET_COL_CORTO], cl    ; agrego el n
         mov [rsi + OFFSET_NOMBRE]   , r15   ; agrego el nombre
         mov [rsi + OFFSET_COL_LARGO], r9b   ; agrego el m
@@ -110,12 +108,9 @@ cuantosTemplosClasicos:
     ;seteo en 0
     xor rcx, rcx ; size
     xor rdx, rdx ; iterador i
-    xor r9, r9   ; n
-    xor r8, r8   ; m
     xor r12, r12 ; contador de templos clasicos
-    xor r13, r13 ; puntero al arreglo
 
-    mov cl, sil     ; guardo size
+    mov rcx, rsi    ; guardo size
     mov r13, rdi    ; guardo el puntero
 
     ; recorro el arreglo
