@@ -11,5 +11,5 @@
 
 - Parciales:
     - [Primer Parcial](Parciales/Primer%20Parcial/)
-        -[Ejercicio 1](Parciales/Primer%20Parcial/ej1/ej1.asm)
-        -[Ejercicio 2](Parciales/Primer%20Parcial/ej2/ej2.asm)
+        - [Ejercicio 1](Parciales/Primer%20Parcial/ej1/ej1.asm)
+        - [Ejercicio 2](Parciales/Primer%20Parcial/ej2/ej2.asm)
