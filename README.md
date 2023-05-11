@@ -1,5 +1,6 @@
 # Organización del Computador 2
 
+Lic. en Ciencias de la Computación - FCEN - UBA
 1er cuatrimestre 2023
 
 ## Índice
