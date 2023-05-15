@@ -33,83 +33,72 @@ gdt_entry_t gdt[GDT_COUNT] = {
             .g = 0x00,
             .base_31_24 = 0x00,
         },
-
-    /* Completar la GDT: 
-      Es conveniente completar antes las constantes definidas en defines.h y valerse
-      de las mismas para definir los descriptores acá. Traten en lo posible de usar las 
-      macros allí definidas.
-      Tomen el descriptor nulo como ejemplo y definan el resto.
-     */
-
     [GDT_IDX_CODE_0] = 
-      {
-        .limit_15_0 = GDT_LIMIT_LOW(FLAT_SEGM_SIZE),
-        .base_15_0 = GDT_BASE_LOW(0),
-        .base_23_16 = GDT_BASE_MID(0),
-        .type = DESC_TYPE_EXECUTE_READ,
-        .s = DESC_CODE_DATA,
-        .dpl = PRIV_0,
-        .p = PRESENT_MEM,
-        .limit_19_16 = GDT_LIMIT_HIGH(FLAT_SEGM_SIZE),
-        .avl = AVL,
-        .l = NLONG,
-        .db = DEFAULT,
-        .g = BYTE_GRAN,   
-        .base_31_24 = GDT_BASE_HIGH(0),
-      },
-
+        {
+            .limit_15_0 = GDT_LIMIT_LOW(FLAT_SEGM_SIZE),
+            .base_15_0 = GDT_BASE_LOW(0),
+            .base_23_16 = GDT_BASE_MID(0),
+            .type = DESC_TYPE_EXECUTE_READ,
+            .s = DESC_CODE_DATA,
+            .dpl = PRIV_0,
+            .p = PRESENT_MEM,
+            .limit_19_16 = GDT_LIMIT_HIGH(FLAT_SEGM_SIZE),
+            .avl = AVL,
+            .l = NOT_LONG,
+            .db = DEFAULT,
+            .g = BYTE_GRAN,   
+            .base_31_24 = GDT_BASE_HIGH(0),
+        },
     [GDT_IDX_CODE_3] = 
-      {
-        .limit_15_0 = GDT_LIMIT_LOW(FLAT_SEGM_SIZE),
-        .base_15_0 = GDT_BASE_LOW(0),
-        .base_23_16 = GDT_BASE_MID(0),
-        .type = DESC_TYPE_EXECUTE_READ,
-        .s = DESC_CODE_DATA,
-        .dpl = PRIV_3,
-        .p = PRESENT_MEM,
-        .limit_19_16 = GDT_LIMIT_HIGH(FLAT_SEGM_SIZE),
-        .avl = AVL,
-        .l = NLONG,
-        .db = DEFAULT,
-        .g = BYTE_GRAN,   
-        .base_31_24 = GDT_BASE_HIGH(0),
-      },
-
+        {
+            .limit_15_0 = GDT_LIMIT_LOW(FLAT_SEGM_SIZE),
+            .base_15_0 = GDT_BASE_LOW(0),
+            .base_23_16 = GDT_BASE_MID(0),
+            .type = DESC_TYPE_EXECUTE_READ,
+            .s = DESC_CODE_DATA,
+            .dpl = PRIV_3,
+            .p = PRESENT_MEM,
+            .limit_19_16 = GDT_LIMIT_HIGH(FLAT_SEGM_SIZE),
+            .avl = AVL,
+            .l = NOT_LONG,
+            .db = DEFAULT,
+            .g = BYTE_GRAN,   
+            .base_31_24 = GDT_BASE_HIGH(0),
+        },
     [GDT_IDX_DATA_0] = 
-      {
-        .limit_15_0 = GDT_LIMIT_LOW(FLAT_SEGM_SIZE),
-        .base_15_0 = GDT_BASE_LOW(0),
-        .base_23_16 = GDT_BASE_MID(0),
-        .type = DESC_TYPE_READ_WRITE,
-        .s = DESC_CODE_DATA,
-        .dpl = PRIV_0,
-        .p = PRESENT_MEM,
-        .limit_19_16 = GDT_LIMIT_HIGH(FLAT_SEGM_SIZE),
-        .avl = AVL,
-        .l = NLONG,
-        .db = DEFAULT,
-        .g = BYTE_GRAN,   
-        .base_31_24 = GDT_BASE_HIGH(0),
-      },
-    
+        {
+            .limit_15_0 = GDT_LIMIT_LOW(FLAT_SEGM_SIZE),
+            .base_15_0 = GDT_BASE_LOW(0),
+            .base_23_16 = GDT_BASE_MID(0),
+            .type = DESC_TYPE_READ_WRITE,
+            .s = DESC_CODE_DATA,
+            .dpl = PRIV_0,
+            .p = PRESENT_MEM,
+            .limit_19_16 = GDT_LIMIT_HIGH(FLAT_SEGM_SIZE),
+            .avl = AVL,
+            .l = NOT_LONG,
+            .db = DEFAULT,
+            .g = BYTE_GRAN,   
+            .base_31_24 = GDT_BASE_HIGH(0),
+        },
     [GDT_IDX_DATA_3] = 
-      {
-        .limit_15_0 = GDT_LIMIT_LOW(FLAT_SEGM_SIZE),
-        .base_15_0 = GDT_BASE_LOW(0),
-        .base_23_16 = GDT_BASE_MID(0),
-        .type = DESC_TYPE_READ_WRITE,
-        .s = DESC_CODE_DATA,
-        .dpl = PRIV_3,
-        .p = PRESENT_MEM,
-        .limit_19_16 = GDT_LIMIT_HIGH(FLAT_SEGM_SIZE),
-        .avl = AVL,
-        .l = NLONG,
-        .db = DEFAULT,
-        .g = BYTE_GRAN,   
-        .base_31_24 = GDT_BASE_HIGH(0),
-      }//todo falta video aca. Queda para despues (segun profe)
+        {
+            .limit_15_0 = GDT_LIMIT_LOW(FLAT_SEGM_SIZE),
+            .base_15_0 = GDT_BASE_LOW(0),
+            .base_23_16 = GDT_BASE_MID(0),
+            .type = DESC_TYPE_READ_WRITE,
+            .s = DESC_CODE_DATA,
+            .dpl = PRIV_3,
+            .p = PRESENT_MEM,
+            .limit_19_16 = GDT_LIMIT_HIGH(FLAT_SEGM_SIZE),
+            .avl = AVL,
+            .l = NOT_LONG,
+            .db = DEFAULT,
+            .g = BYTE_GRAN,   
+            .base_31_24 = GDT_BASE_HIGH(0),
+        }
 };
 
 // Aca hay una inicializacion estatica de una structura que tiene su primer componente el tamano 
 // y en la segunda, la direccion de memoria de la GDT. Observen la notacion que usa. 
-gdt_descriptor_t GDT_DESC = {sizeof(gdt) - 1, (uint32_t)&gdt};
+gdt_descriptor_t GDT_DESC = {sizeof(gdt) - 1, (uint32_t)(&gdt)};

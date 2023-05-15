@@ -37,7 +37,7 @@
 /* -------------------------------------------------------------------------- */
 
 #define AVL  1
-#define NAVL 0
+#define NOT_AVL 0
 
 /* Granularity */
 /* -------------------------------------------------------------------------- */
@@ -55,7 +55,7 @@
 /* -------------------------------------------------------------------------- */
 
 #define LONG  1
-#define NLONG 0
+#define NOT_LONG 0
 
 /* Indices en la gdt */
 /* -------------------------------------------------------------------------- */
@@ -71,7 +71,7 @@
 /* Offsets en la gdt */
 /* -------------------------------------------------------------------------- */
 #define GDT_OFF_NULL_DESC (GDT_IDX_NULL_DESC << 3)
-#define GDT_OFF_VIDEO  (GDT_IDX_VIDEO << 3)
+#define GDT_OFF_VIDEO     (GDT_IDX_VIDEO << 3)
 
 /* COMPLETAR - Valores para los selectores de segmento de la GDT 
  * Definirlos a partir de los indices de la GDT, definidos más arriba 
@@ -104,8 +104,8 @@
 #define DESC_TYPE_READ_WRITE   (uint8_t)(2)
 
 /* COMPLETAR - Tamaños de segmentos */ 
-#define FLAT_SEGM_SIZE (uint32_t)(1 << 20)
-//#define VIDEO_SEGM_SIZE   TODO preguntar a que se refiere.
+#define FLAT_SEGM_SIZE  (uint32_t)(1 << 20)
+#define VIDEO_SEGM_SIZE (uint32_t)(1 << 20)
 
 
 /* Direcciones de memoria */ 
