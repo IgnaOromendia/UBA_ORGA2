@@ -9,7 +9,6 @@ global start
 
 ; COMPLETAR - Agreguen declaraciones extern según vayan necesitando
 extern A20_enable
-extern A20_check8
 extern GDT_DESC
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
@@ -50,12 +49,11 @@ start:
     ; COMPLETAR - Imprimir mensaje de bienvenida - MODO REAL
     ; (revisar las funciones definidas en print.mac y los mensajes se encuentran en la
     ; sección de datos)
-    print_text_rm start_rm_msg, start_rm_len, 1000, 0, 0
+    print_text_rm start_rm_msg, start_rm_len, 0x70, 0, 0
 
     ; COMPLETAR - Habilitar A20
     ; (revisar las funciones definidas en a20.asm)
     call A20_enable
-    ;call A20_check
 
     ; COMPLETAR - Cargar la GDT
     ; Carga los valores de src en el GDTR, en este caso un struct contiene el address y el tamaño
@@ -63,6 +61,7 @@ start:
 
     ; COMPLETAR - Setear el bit PE del registro CR0
     ; Tenemos que modificarlo y poner el bit 0 en 1 para activar el modo protegido
+    mov eax, cr0
     or al, 1
     mov cr0, eax
 
@@ -76,10 +75,19 @@ modo_protegido:
     ; COMPLETAR - A partir de aca, todo el codigo se va a ejectutar en modo protegido
     ; Establecer selectores de segmentos DS, ES, GS, FS y SS en el segmento de datos de nivel 0
     ; Pueden usar la constante DS_RING_0_SEL definida en este archivo
+    mov ax, DS_RING_0_SEL
+    mov ds, ax
+    mov es, ax
+    mov gs, ax
+    mov fs, ax
+    mov ss, ax
 
     ; COMPLETAR - Establecer el tope y la base de la pila
+    mov ebp, 0x25000
+    mov esp, 0x25000
 
     ; COMPLETAR - Imprimir mensaje de bienvenida - MODO PROTEGIDO
+    print_text_pm start_pm_msg, start_pm_len, 0x70, 0, 0
 
     ; COMPLETAR - Inicializar pantalla
     
