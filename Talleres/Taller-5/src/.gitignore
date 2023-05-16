@@ -1,1 +1,6 @@
 .gdb_history
+*.o
+*.bin
+*.elf
+*.sym
+*.img
