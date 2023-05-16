@@ -104,8 +104,8 @@
 #define DESC_TYPE_READ_WRITE   (uint8_t)(2)
 
 /* COMPLETAR - Tamaños de segmentos */ 
-#define FLAT_SEGM_SIZE  (uint32_t)(1 << 20)
-#define VIDEO_SEGM_SIZE (uint32_t)(1 << 20)
+#define FLAT_SEGM_SIZE  (uint32_t)((1 << 20) * 817)
+#define VIDEO_SEGM_SIZE (uint32_t)(50 * 80 * 2)
 
 
 /* Direcciones de memoria */ 

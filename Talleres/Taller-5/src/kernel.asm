@@ -62,7 +62,7 @@ start:
     ; COMPLETAR - Setear el bit PE del registro CR0
     ; Tenemos que modificarlo y poner el bit 0 en 1 para activar el modo protegido
     mov eax, cr0
-    or al, 1
+    or eax, 1
     mov cr0, eax
 
     ; COMPLETAR - Saltar a modo protegido (far jump)
@@ -90,7 +90,7 @@ modo_protegido:
     print_text_pm start_pm_msg, start_pm_len, 0x70, 0, 0
 
     ; COMPLETAR - Inicializar pantalla
-    
+    call screen_draw_layout
    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF
