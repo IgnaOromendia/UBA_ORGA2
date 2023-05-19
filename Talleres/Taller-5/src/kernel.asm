@@ -18,6 +18,8 @@ extern GDT_DESC
 extern screen_draw_layout
 extern IDT_DESC
 extern idt_init
+extern pic_reset
+extern pic_enable
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 ; estos son los mismos define que en cdt del defines.h
@@ -106,7 +108,14 @@ modo_protegido:
     ; Cargo la IDT
     lidt [IDT_DESC]
 
-    ;
+    ;Remapeo el PIC
+    call pic_reset
+
+    ; Habiliti el PIC
+    call pic_enable
+
+    ; Habilito las interrupciones
+    sti
    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF
