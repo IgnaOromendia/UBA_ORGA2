@@ -2,6 +2,8 @@
 ; ==============================================================================
 ; TALLER System Programming - ORGANIZACION DE COMPUTADOR II - FCEN
 ; ==============================================================================
+; para ejecutar
+; qemu-system-i386 -s -S -fda diskette.img --monitor stdio
 
 %include "print.mac" 
 
@@ -10,6 +12,7 @@ global start
 ; COMPLETAR - Agreguen declaraciones extern según vayan necesitando
 extern A20_enable
 extern GDT_DESC
+extern screen_draw_layout
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 ; estos son los mismos define que en cdt del defines.h
