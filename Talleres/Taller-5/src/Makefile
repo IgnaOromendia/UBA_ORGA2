@@ -9,7 +9,7 @@ KERNEL_SRC=kernel.asm
 KERNEL_OBJ=kernel.o
 KERNEL_BIN=kernel.bin
 
-OBJ=$(KERNEL_OBJ) gdt.o screen.o #idt.o isr.o pic.o keyboard_input.o
+OBJ=$(KERNEL_OBJ) gdt.o screen.o idt.o isr.o pic.o keyboard_input.o
 
 # Dependencias, generado por el flag -MMD de gcc, util para recompilar cuando actualizamos headers.
 DEP=$(OBJ:%.o=%.d)
