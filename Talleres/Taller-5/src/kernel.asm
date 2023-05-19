@@ -2,8 +2,11 @@
 ; ==============================================================================
 ; TALLER System Programming - ORGANIZACION DE COMPUTADOR II - FCEN
 ; ==============================================================================
-; para ejecutar
-; qemu-system-i386 -s -S -fda diskette.img --monitor stdio
+; para ejecutar qemu-system-i386 -s -S -fda diskette.img --monitor stdio
+; GDB --
+; gdb kernel.bin.elf
+; target remote localhost:1234
+; b kenrel.asm:
 
 %include "print.mac" 
 
@@ -13,6 +16,8 @@ global start
 extern A20_enable
 extern GDT_DESC
 extern screen_draw_layout
+extern IDT_DESC
+extern idt_init
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 ; estos son los mismos define que en cdt del defines.h
@@ -94,6 +99,14 @@ modo_protegido:
 
     ; COMPLETAR - Inicializar pantalla
     call screen_draw_layout
+
+    ; Inicializo la IDT
+    call idt_init
+
+    ; Cargo la IDT
+    lidt [IDT_DESC]
+
+    ;
    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF
