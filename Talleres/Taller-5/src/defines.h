@@ -76,6 +76,7 @@
 /* COMPLETAR - Valores para los selectores de segmento de la GDT 
  * Definirlos a partir de los indices de la GDT, definidos más arriba 
  * Hint: usar operadores "<<" y "|" (shift y or) */
+// El selector de segemnto tiene 16 bits, los primeros 13 de indice, uno de ldt o gdt y los utlimos 2 de privilegio
 
 #define GDT_CODE_0_SEL (GDT_IDX_CODE_0 << 3)
 #define GDT_DATA_0_SEL (GDT_IDX_DATA_0 << 3)

@@ -58,7 +58,7 @@ void print_hex(uint32_t numero, int32_t size, uint32_t x, uint32_t y,
 
 void screen_draw_box(uint32_t fInit, uint32_t cInit, uint32_t fSize,
                      uint32_t cSize, uint8_t character, uint8_t attr) {
-  ca(*p)[VIDEO_COLS] = (ca(*)[VIDEO_COLS])VIDEO;
+  ca(*p)[VIDEO_COLS] = (ca(*)[VIDEO_COLS])VIDEO; // sintaxis c, https://cdecl.org/
   uint32_t f;
   uint32_t c;
   for (f = fInit; f < fInit + fSize; f++) {
