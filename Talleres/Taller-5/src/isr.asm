@@ -13,7 +13,6 @@ BITS 32
 ;; PIC
 extern pic_finish1
 extern kernel_exception
-
 extern process_scancode
 
 ;; Definición de MACROS
@@ -122,6 +121,17 @@ ISRNE 20
 global _isr32
 ; COMPLETAR: Implementar la rutina
 _isr32:
+    pushad              
+    ; Prologo
+    cli
+
+    call next_clock
+    ; Notificamos al pic que ya atenidmos
+    call pic_finish1    
+
+    ; Epilogo
+    sti
+    popad               
     iret
 
 ;; Rutina de atención del TECLADO
@@ -129,8 +139,16 @@ _isr32:
 global _isr33
 ; COMPLETAR: Implementar la rutina
 _isr33:
-    iret
+    pushad
+    cli
+    
+    call process_scancode
 
+    call pic_finish1
+
+    sti
+    popad
+    iret
 
 ;; Rutinas de atención de las SYSCALLS
 ;; -------------------------------------------------------------------------- ;;
@@ -138,11 +156,17 @@ _isr33:
 global _isr88
 ; COMPLETAR: Implementar la rutina
 _isr88:
+    pushad
+
+    popad
     iret
 
 global _isr98
 ; COMPLETAR: Implementar la rutina
 _isr98:
+    pushad
+
+    popad
     iret
 
 ; PushAD Order
@@ -158,7 +182,7 @@ _isr98:
 
 ;; Funciones Auxiliares
 ;; -------------------------------------------------------------------------- ;;
-isrNumber:           dd 0x00000000
+isrNumber:           dd 0x00000000 ; seria 88?
 isrClock:            db '|/-\'
 next_clock:
         pushad

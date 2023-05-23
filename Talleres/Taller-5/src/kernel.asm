@@ -2,7 +2,8 @@
 ; ==============================================================================
 ; TALLER System Programming - ORGANIZACION DE COMPUTADOR II - FCEN
 ; ==============================================================================
-; para ejecutar qemu-system-i386 -s -S -fda diskette.img --monitor stdio
+; para ejecutar --
+; qemu-system-i386 -s -S -fda diskette.img --monitor stdio
 ; GDB --
 ; gdb kernel.bin.elf
 ; target remote localhost:1234
@@ -71,6 +72,7 @@ start:
 
     ; COMPLETAR - Setear el bit PE del registro CR0
     ; Tenemos que modificarlo y poner el bit 0 en 1 para activar el modo protegido
+    ; Los registros de control no son de proposito general
     mov eax, cr0
     or eax, 1
     mov cr0, eax
@@ -116,6 +118,10 @@ modo_protegido:
 
     ; Habilito las interrupciones
     sti
+
+    int 33
+    
+    int 32
    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF

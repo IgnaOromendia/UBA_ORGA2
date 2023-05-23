@@ -23,7 +23,7 @@ void pic_finish2(void) {
 // COMPLETAR: implementar pic_reset()
 void pic_reset() {
   // Inicializo el PIC_1
-  outb(PIC1_PORT, 0x11);      // ICW1 - IRQs activas por flanco, Modo cascada, ICW4 Si
+  outb(PIC1_PORT, 0x20);      // ICW1 - IRQs activas por flanco, Modo cascada, ICW4 Si - donde arrancan
 
   outb(PIC1_PORT + 1, 0x8);   // ICW2 - INT base para el PIC_1 tipo 8
 
@@ -34,7 +34,7 @@ void pic_reset() {
   outb(PIC1_PORT + 1, 0xFF);  // OCW1 - Set o Clearel IMR
 
   // Inicializo el PIC_2
-  outb(PIC2_PORT, 0x11);      // ICW1 - IRQs activas por flanco, Modo cascada, ICW4 Si
+  outb(PIC2_PORT, 0x28);      // ICW1 - IRQs activas por flanco, Modo cascada, ICW4 Si - arrancan
 
   outb(PIC2_PORT + 1, 0x70);  // ICW2 - INT base para el PIC_1 tipo 70h
 

@@ -68,6 +68,10 @@ type: se refiere a Trap, Task, Interrupt
     .present = PRESENT_MEM                                                     \
   }
 
+// El selector junto con el offset es quien y donde la aitende
+// DPL el privilegio de quien dispara la int
+// Para ver si se el que disparo la alerta o puede hacer
+
 void idt_init() {
   // Excepciones
   IDT_ENTRY0(0);
@@ -93,6 +97,9 @@ void idt_init() {
   IDT_ENTRY0(20);
 
   // COMPLETAR: Interrupciones de reloj y teclado
+
+  IDT_ENTRY0(32);
+  IDT_ENTRY0(33);
 
   // COMPLETAR: Syscalls
 
