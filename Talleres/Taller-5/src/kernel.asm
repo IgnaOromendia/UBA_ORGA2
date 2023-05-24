@@ -121,7 +121,7 @@ modo_protegido:
 
     int 88
 
-    int 98
+    ;int 98
 
 
    
