@@ -10,6 +10,8 @@
 
 BITS 32
 
+extern print
+
 ;; PIC
 extern pic_finish1
 extern kernel_exception
@@ -123,14 +125,14 @@ global _isr32
 _isr32:
     pushad              
     ; Prologo
-    cli
+    ;cli
 
     call next_clock
     ; Notificamos al pic que ya atenidmos
     call pic_finish1    
 
     ; Epilogo
-    sti
+    ;sti
     popad               
     iret
 
@@ -140,13 +142,18 @@ global _isr33
 ; COMPLETAR: Implementar la rutina
 _isr33:
     pushad
-    cli
-    
-    call process_scancode
+    ;cli
 
+    xor ax, ax
+    in al, 0x60
+    push ax
+
+    call process_scancode
     call pic_finish1
 
-    sti
+    pop ax
+
+    ;sti
     popad
     iret
 
@@ -156,17 +163,17 @@ _isr33:
 global _isr88
 ; COMPLETAR: Implementar la rutina
 _isr88:
-    pushad
-
-    popad
+    ;pushad
+    mov eax, 0x58
+    ;popad
     iret
 
 global _isr98
 ; COMPLETAR: Implementar la rutina
 _isr98:
-    pushad
-
-    popad
+    ;pushad
+    mov eax, 0x62
+    ;popad
     iret
 
 ; PushAD Order

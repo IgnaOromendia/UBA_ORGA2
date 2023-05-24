@@ -62,7 +62,7 @@ type: se refiere a Trap, Task, Interrupt
   idt[numero] = (idt_entry_t) {                                                \
     .offset_31_16 = HIGH_16_BITS(&_isr##numero),                               \
     .offset_15_0 = LOW_16_BITS(&_isr##numero),                                 \
-    .segsel = GDT_CODE_3_SEL,                                                  \
+    .segsel = GDT_CODE_0_SEL,                                                  \
     .type = INTERRUPT_GATE_TYPE,                                               \
     .dpl = PRIV_3,                                                             \
     .present = PRESENT_MEM                                                     \
