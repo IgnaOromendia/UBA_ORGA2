@@ -118,12 +118,6 @@ modo_protegido:
 
     ; Habilito las interrupciones
     sti
-
-    int 88
-
-    ;int 98
-
-
    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF

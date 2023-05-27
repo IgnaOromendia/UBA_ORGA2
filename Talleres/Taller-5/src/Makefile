@@ -9,14 +9,14 @@ KERNEL_SRC=kernel.asm
 KERNEL_OBJ=kernel.o
 KERNEL_BIN=kernel.bin
 
-OBJ=$(KERNEL_OBJ) gdt.o screen.o idt.o isr.o pic.o keyboard_input.o
+OBJ=$(KERNEL_OBJ) gdt.o screen.o idt.o isr.o pic.o keyboard_input.o mmu.o
 
 # Dependencias, generado por el flag -MMD de gcc, util para recompilar cuando actualizamos headers.
 DEP=$(OBJ:%.o=%.d)
 DISK_IMG=diskette.img
 DISK_IMG_BZ=diskette.img.bz2
 
-CFLAGS=-Wall -Wextra -pedantic -std=c99 -Werror -Og -ggdb \
+CFLAGS=-Wall -Wextra -pedantic -std=c99 -Og -ggdb \
   -m32 -ffreestanding -fno-pie -fno-zero-initialized-in-bss -fno-stack-protector
 
 
@@ -95,6 +95,6 @@ qemu: clean image
 	qemu-system-i386 -s -S -drive format=raw,if=floppy,file=$(DISK_IMG) -daemonize
 
 attach:
-	gdb $(KERNEL_BIN).elf -ex "source orga2.py" -ex "target remote localhost:1234"
+	gdb $(KERNEL_BIN).elf -ex "source orga2.py" -ex "target remote localhost:1234" -ex "set disassembly-flavor intel"
 
 gdb: qemu attach

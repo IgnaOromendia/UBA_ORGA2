@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 import gdb
 
@@ -26,6 +27,22 @@ def load_descriptor_table(name, identifier):
 def format_address(addr):
     return gdb.execute(f'output/a 0x{addr:X}', to_string=True)
 
+def print_table(rows):
+    columns = {}
+
+    for row in rows:
+        for idx, column in enumerate(row):
+            width = len(column)
+            if idx in columns:
+                columns[idx] = max(columns[idx], width)
+            else:
+                columns[idx] = width
+
+    for row in rows:
+        for idx, column in enumerate(row):
+            print(column.ljust(columns[idx] + 1), end='')
+        print()
+
 def print_descriptor_table(register_name, table_name, descriptor, formatter, skip_not_present=True):
     base, size = descriptor
     entry_count = size // 8
@@ -35,7 +52,6 @@ def print_descriptor_table(register_name, table_name, descriptor, formatter, ski
     print(register_name, "points to", format_address(base), "containing", entry_count, "entries:")
 
     rows = []
-    columns = {}
 
     for i in range(entry_count):
         addr = base + i * 8
@@ -47,20 +63,9 @@ def print_descriptor_table(register_name, table_name, descriptor, formatter, ski
 
         row = [str(column) for column in formatter(entry_bytes)]
         row.insert(0, f'{table_name}[{i}] =')
-
-        for idx, column in enumerate(row):
-            width = len(column)
-            if idx in columns:
-                columns[idx] = max(columns[idx], width)
-            else:
-                columns[idx] = width
-
         rows.append(row)
 
-    for row in rows:
-        for idx, column in enumerate(row):
-            print(column.ljust(columns[idx] + 1), end='')
-        print()
+    print_table(rows)
 
 def print_descriptor_entry(table_name, gdt, index, formatter):
     base, size = gdt
@@ -235,10 +240,11 @@ class IDTPrinter:
 
     def children(self):
         void_star = gdb.lookup_type('void').pointer()
+        u32 = gdb.lookup_type('unsigned int')
+
         offset = self.val['offset_31_16'].cast(u32) << 16 | self.val['offset_15_0'].cast(u32)
         yield 'offset', offset.cast(void_star)
 
-        u32 = gdb.lookup_type('unsigned int')
         yield 'segsel',  self.val['segsel'].cast(u32)
         yield 'type',    self.val['type'].cast(u32)
         yield 'dpl',     self.val['dpl'].cast(u32)
@@ -252,3 +258,269 @@ def orga2_printers(value):
     return None
 
 gdb.pretty_printers.append(orga2_printers)
+
+def load_control_register(name, identifier):
+    # Cargo todos los registros según qemu
+    qemu_registers = gdb.execute('monitor info registers', to_string=True)
+    # Busco al gdt
+    descriptors = [reg for reg in qemu_registers.split() if reg.startswith(f"{identifier}=")]
+    # Debería haber uno sólo, me quedo con ese
+    assert len(descriptors) == 1, f"Detectamos más de un {name}"
+    descriptor_text = descriptors[0][len(identifier) + 1:]
+    descriptor_value = int(descriptor_text, 16)
+
+    address = descriptor_value & 0xFFFFF000
+    pcd = bool(descriptor_value & 0x00000010)
+    pwt = bool(descriptor_value & 0x00000008)
+
+    return address, pcd, pwt
+
+def get_pd_entry(base, index):
+    addr = base + index * 4
+
+    inferior = gdb.selected_inferior()
+    entry_bytes = inferior.read_memory(addr, 4)
+    entry = int.from_bytes(entry_bytes, 'little')
+    phy = entry & 0xFFFFF000
+    a = bool(entry & 0x00000020)
+    pcd = bool(entry & 0x00000010)
+    pwt = bool(entry & 0x00000008)
+    u_s = bool(entry & 0x00000004)
+    r_w = bool(entry & 0x00000002)
+    p = bool(entry & 0x00000001)
+
+    return phy, a, pcd, pwt, u_s, r_w, p
+
+def get_pt_entry(base, index):
+    addr = base + index * 4
+
+    inferior = gdb.selected_inferior()
+    entry_bytes = inferior.read_memory(addr, 4)
+    entry = int.from_bytes(entry_bytes, 'little')
+    phy = entry & 0xFFFFF000
+    g = bool(entry & 0x00000100)
+    pat = bool(entry & 0x00000080)
+    d = bool(entry & 0x00000040)
+    a = bool(entry & 0x00000020)
+    pcd = bool(entry & 0x00000010)
+    pwt = bool(entry & 0x00000008)
+    u_s = bool(entry & 0x00000004)
+    r_w = bool(entry & 0x00000002)
+    p = bool(entry & 0x00000001)
+
+    return phy, g, pat, d, a, pcd, pwt, u_s, r_w, p
+
+def format_flags(flags, names):
+    flags_set = []
+    for flag, name in zip(flags, names):
+        if isinstance(name, str):
+            if flag:
+                flags_set.append(name)
+        else:
+            flags_set.append(name[flag])
+    return ', '.join(flags_set)
+
+def print_translation(cr3, virtual_addr):
+    base, pcd, pwt = cr3
+
+    pd_index = virtual_addr >> 22
+    pt_index = (virtual_addr >> 12) & 0x3FF
+    offset = virtual_addr & 0xFFF
+    print(f'Address ({format_address(virtual_addr)}):')
+    print(f'  PD Index: {pd_index:#x}')
+    print(f'  PT Index: {pt_index:#x}')
+    print(f'  Offset: {offset:#x}')
+    print('CR3:')
+    print(f'  Base: {format_address(base)}')
+    print(f'  Attributes: {format_flags([pcd, pwt], ["PCD", "PWT"]) or "None set"}')
+
+    pd_phy, pd_a, pd_pcd, pd_pwt, pd_u_s, pd_r_w, pd_p = get_pd_entry(base, pd_index)
+    if not pd_p:
+        print('  PDE Entry -- Not present')
+        return
+    print(f'  PDE Entry:')
+    print(f'    Page Table: {format_address(pd_phy)}')
+    print(f'    Attributes: {format_flags([pd_a, pd_pcd, pd_pwt, pd_u_s, pd_r_w], ["Accessed", "PCD", "PWT", ["System", "User"], ["Read-Only", "Read/Write"]])}')
+    pt_phy, pt_g, pt_pat, pt_d, pt_a, pt_pcd, pt_pwt, pt_u_s, pt_r_w, pt_p = get_pt_entry(pd_phy, pt_index)
+    if not pt_p:
+        print('  PTE Entry -- Not present')
+        return
+    print(f'  PTE Entry:')
+    print(f'    Physical Address: {format_address(pt_phy)}')
+    print(f'    Attributes: {format_flags([pt_g, pt_d, pt_a, pt_pcd, pt_pwt, pt_u_s, pt_r_w], ["Global", "Dirty", "Accessed", "PCD", "PWT", ["System", "User"], ["Read-Only", "Read/Write"]])}')
+    print(f'  Physical Address: {format_address(pt_phy | offset)}')
+    print(f'  Attributes: {format_flags([pt_g, pt_d, pt_a, pcd, pd_pcd or pt_pcd, pwt or pd_pwt or pt_pwt, pd_u_s and pt_u_s, pd_r_w and pt_r_w], ["Global", "Dirty", "Accessed", "PCD", "PWT", ["System", "User"], ["Read-Only", "Read/Write"]])}')
+
+@dataclass
+class Mapping:
+    """Represents a mapping from virtual addresses to physical ones"""
+    from_virt: int
+    to_virt:int
+    from_phy: int
+    to_phy: int
+    g: bool
+    pat: bool
+    pcd: bool
+    pwt: bool
+    u_s: bool
+    r_w: bool
+
+def print_mappings(cr3):
+    base, pcd, pwt = cr3
+
+    last = None
+    mappings = []
+
+    for i in range(1024):
+        pd_phy, pd_a, pd_pcd, pd_pwt, pd_u_s, pd_r_w, pd_p = get_pd_entry(base, i)
+        if not pd_p:
+            continue
+        for j in range(1024):
+            pt_phy, pt_g, pt_pat, pt_d, pt_a, pt_pcd, pt_pwt, pt_u_s, pt_r_w, pt_p = get_pt_entry(pd_phy, j)
+            if not pt_p:
+                continue
+
+            effective_pcd = pcd or pd_pcd or pt_pcd
+            effective_pwt = pwt or pd_pwt or pt_pwt
+            effective_u_s = pd_u_s and pt_u_s
+            effective_r_w = pd_r_w and pt_r_w
+
+            pt_virt = (i << 22) | (j << 12)
+            continues_previous_phy = last is not None and last.to_phy == pt_phy
+            continues_previous_virt = last is not None and last.to_virt == pt_virt
+            same_attributes = (last is not None
+                           and last.g == pt_g
+                           and last.pat == pt_pat
+                           and last.pcd == effective_pcd
+                           and last.pwt == effective_pwt
+                           and last.u_s == effective_u_s
+                           and last.r_w == effective_r_w)
+            if last is not None and last.to_phy == pt_phy and last.to_virt == pt_virt and same_attributes:
+                last.to_phy += 0x1000
+                last.to_virt += 0x1000
+            else:
+                last = Mapping(pt_virt, pt_virt + 0x1000, pt_phy, pt_phy + 0x1000, pt_g, pt_pat, effective_pcd, effective_pwt, effective_u_s, effective_r_w)
+                mappings.append(last)
+    rows = [('Virtual Range', '|', 'Physical Range', '|', 'Length', '|', 'Attributes')]
+    for mapping in mappings:
+        rows.append((
+            f'0x{mapping.from_virt:0>8x}-0x{mapping.to_virt:0>8x}', '|',
+            f'0x{mapping.from_phy:0>8x}-0x{mapping.to_phy:0>8x}',   '|',
+            f'{mapping.to_phy - mapping.from_phy:#x}',            '|',
+            format_flags([mapping.g, mapping.pcd, mapping.pwt, mapping.u_s, mapping.r_w],
+                         ['Global', 'PCD', 'PWT', ['System', 'User'], ['Read-Only', 'Read-Write']]),
+        ))
+    print_table(rows)
+
+class InfoPageCommand(gdb.Command):
+    """Shows paging information
+  info page -- Show a summary of the paging configuration
+  info page directory -- Shows present entries in the page directory
+  info page table [idx] -- Shows present entries for the given page table
+  info page [addr] -- Shows paging information for the given virtual address"""
+    def __init__(self):
+        super().__init__('info page', gdb.COMMAND_STATUS, gdb.COMPLETE_NONE, True)
+
+    def invoke(self, argument, from_tty):
+        cr3 = load_control_register('cr3', 'CR3')
+
+        if argument == '':
+            print_mappings(cr3)
+        else:
+            u32 = gdb.lookup_type('unsigned int')
+            virtual_addr = int(gdb.parse_and_eval(argument).cast(u32))
+            print_translation(cr3, virtual_addr)
+
+class InfoPageDirectoryCommand(gdb.Command):
+    """Shows present entries in the given page frame"""
+    def __init__(self):
+        super().__init__('info page directory', gdb.COMMAND_STATUS, gdb.COMPLETE_NONE, False)
+
+    def invoke(self, argument, from_tty):
+        base, pcd, pwt = load_control_register('cr3', 'CR3')
+
+        rows = [(
+            'cr3', '=',
+            'Base:', format_address(base) + ',',
+            'Attributes:', (format_flags([pcd, pwt], ['PCD', 'PWT']) or 'None set')
+        )]
+
+        for i in range(1024):
+            phy, a, pcd, pwt, u_s, r_w, p = get_pd_entry(base, i)
+            if not p:
+                continue
+            rows.append((
+                f'pd[{i:#x}]', '=',
+                'Page Table:', format_address(phy) + ',',
+                'Attributes:', format_flags([a, pcd, pwt, u_s, r_w], ["Accessed", "PCD", "PWT", ["System", "User"], ["Read-Only", "Read/Write"]])
+            ))
+
+        print_table(rows)
+
+class InfoPageTableCommand(gdb.Command):
+    """Shows present entries for the given page table"""
+    def __init__(self):
+        super().__init__('info page table', gdb.COMMAND_STATUS, gdb.COMPLETE_EXPRESSION, False)
+
+    def invoke(self, argument, from_tty):
+        u32 = gdb.lookup_type('unsigned int')
+        pd_index = int(gdb.parse_and_eval(argument).cast(u32))
+
+        base, pcd, pwt = load_control_register('cr3', 'CR3')
+        rows = [(
+            'cr3', '=',
+            'Base:', format_address(base) + ',',
+            'Attributes:', (format_flags([pcd, pwt], ['PCD', 'PWT']) or 'None set')
+        )]
+
+        pd_phy, a, pcd, pwt, u_s, r_w, p = get_pd_entry(base, pd_index)
+        if not p:
+            rows.append((f'pd[{pd_index:#x}]', '--' , 'Not present'))
+            print_table(rows)
+            return
+        rows.append((
+            f'pd[{pd_index:#x}]', '=',
+            'Page Table:', format_address(pd_phy) + ',',
+            'Attributes:', format_flags([a, pcd, pwt, u_s, r_w], ["Accessed", "PCD", "PWT", ["System", "User"], ["Read-Only", "Read/Write"]])
+        ))
+
+        for i in range(1024):
+            phy, g, pat, d, a, pcd, pwt, u_s, r_w, p = get_pt_entry(pd_phy, i)
+            if not p:
+                continue
+            rows.append((
+                f'pt[{i:#x}]', '=',
+                'Physical Address:', format_address(phy) + ',',
+                'Attributes:', format_flags([g, d, a, pcd, pwt, u_s, r_w], ["Global", "Dirty", "Accessed", "PCD", "PWT", ["System", "User"], ["Read-Only", "Read/Write"]])
+            ))
+
+        print_table(rows)
+
+InfoPageCommand()
+InfoPageDirectoryCommand()
+InfoPageTableCommand()
+
+
+class XPCommand(gdb.Command):
+    """Shows present entries for the given page table"""
+    def __init__(self):
+        super().__init__('xp', gdb.COMMAND_STATUS, gdb.COMPLETE_EXPRESSION, False)
+
+    def invoke(self, arguments, from_tty):
+        u32 = gdb.lookup_type('unsigned int')
+
+        previous_mode = gdb.execute('maintenance packet qqemu.PhyMemMode', to_string=True)
+        is_virtual = 'sending: qqemu.PhyMemMode\nreceived: "0"\n'
+        is_physical = 'sending: qqemu.PhyMemMode\nreceived: "1"\n'
+        assert previous_mode == is_virtual or previous_mode == is_physical
+        previous_mode = int(previous_mode == is_physical)
+
+        # Change to physical mode
+        response = gdb.execute('maintenance packet Qqemu.PhyMemMode:1', to_string=True)
+        assert response == 'sending: Qqemu.PhyMemMode:1\nreceived: "OK"\n'
+        # Run X
+        gdb.execute(f'x {arguments}')
+        response = gdb.execute(f'maintenance packet Qqemu.PhyMemMode:{previous_mode}', to_string=True)
+        assert response == f'sending: Qqemu.PhyMemMode:{previous_mode}\nreceived: "OK"\n'
+
+XPCommand()
