@@ -8,7 +8,7 @@ Lic. en Ciencias de la Computación - FCEN - UBA\
 - Talleres:
     - [Taller 3](Talleres/Taller-3/src/)
     - [Taller 4](Talleres/Taller-4/src/)
-    - [Taller 5](Talleres/Taller-5/src/)
+    - [Taller 5-6-7](Talleres/Taller-5/src/)
 
 - Parciales:
     - [Primer Parcial](Parciales/Primer%20Parcial/)
