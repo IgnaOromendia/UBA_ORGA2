@@ -84,7 +84,7 @@ paddr_t mmu_init_kernel_dir(void) {
   zero_page(kpd);
   zero_page(kpt);
 
-  kpd[0].pt = KERNEL_PAGE_TABLE_0 >> 12;
+  kpd[0].pt =  MMU_ENTRY_PADDR(KERNEL_PAGE_TABLE_0);
   kpd[0].attrs = PD_ATTR_K;
 
   for(int i = 0; i < PAGE_SIZE; i++){
@@ -105,12 +105,22 @@ paddr_t mmu_init_kernel_dir(void) {
  * @param attrs los atributos a asignar en la entrada de la tabla de páginas
  */
 void mmu_map_page(uint32_t cr3, vaddr_t virt, paddr_t phy, uint32_t attrs) {
-  uint32_t pd = CR3_TO_PAGE_DIR(cr3);
+  pd_entry_t* pd_s = CR3_TO_PAGE_DIR(cr3);
   uint32_t pd_index = VIRT_PAGE_DIR(virt);
-  uint32_t pt = CR3_TO_PAGE_DIR(pd + pd_index);
   uint32_t pt_index = VIRT_PAGE_TABLE(virt);
-  uint32_t page_addr = CR3_TO_PAGE_DIR(pt + pt_index);
-  phy = ((page_addr | VIRT_PAGE_OFFSET(virt)) << 12) | attrs; // PREGUNTAR
+  pt_entry_t* pt_s;
+  
+  if ((pd_s[pd_index].attrs % 2) == 1) {
+    // Presente en memoria
+    pt_s= pd_s[pd_index].pt;
+  } else {
+    // No presente
+    pt_s = mmu_next_free_kernel_page();
+  }
+
+  // Asignamos página
+  pt_s[pt_index].page = MMU_ENTRY_PADDR(phy);
+  pt_s[pt_index].attrs = attrs;
 }
 
 /**

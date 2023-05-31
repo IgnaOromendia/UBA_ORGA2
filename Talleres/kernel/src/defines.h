@@ -136,7 +136,7 @@ dir virt = |10 bits de Directorio| 10 bits de Table | 12 de Offset|
 #define VIRT_PAGE_TABLE(X)  (X >> 12) & 0x3FF
 #define VIRT_PAGE_DIR(X)    (X >> 22) & 0x3FF
 #define CR3_TO_PAGE_DIR(X)  (X & 0xFFFFF000)
-#define MMU_ENTRY_PADDR(X)  (X << 12)
+#define MMU_ENTRY_PADDR(X)  (X >> 12)
 
 #define MMU_P (1 << 0)
 #define MMU_W (1 << 1)
