@@ -132,11 +132,11 @@ MMU_ENTRY_PADDR(X)  devuelve la dirección física de la base de un page frame o
 dir virt = |10 bits de Directorio| 10 bits de Table | 12 de Offset|
 */
 
-#define VIRT_PAGE_OFFSET(X) X & 0xFFF
+#define VIRT_PAGE_OFFSET(X) (X & 0xFFF)
 #define VIRT_PAGE_TABLE(X)  (X >> 12) & 0x3FF
 #define VIRT_PAGE_DIR(X)    (X >> 22) & 0x3FF
-#define CR3_TO_PAGE_DIR(X)  X & 0xFFFFF000
-#define MMU_ENTRY_PADDR(X)  X // TODO CHECKEAR VERACIDAD DE ESTE DEFINE
+#define CR3_TO_PAGE_DIR(X)  (X & 0xFFFFF000)
+#define MMU_ENTRY_PADDR(X)  (X << 12)
 
 #define MMU_P (1 << 0)
 #define MMU_W (1 << 1)
@@ -149,6 +149,33 @@ dir virt = |10 bits de Directorio| 10 bits de Table | 12 de Offset|
 #define TASK_CODE_PAGES   2
 #define TASK_STACK_BASE   0x08003000
 #define TASK_SHARED_PAGE  0x08003000
+
+/* Atributos Paginación */
+/* -------------------------------------------------------------------------- */
+
+#define DIRTY      1
+#define CLEAN      0
+
+#define ACCESSED     1
+#define NOT_ACCESSED 0
+
+#define CACHE_DISABLED 1
+#define CACHE_ENABLE   0
+
+#define WRITE_THROUGH     0
+#define NOT_WRITE_THROUGH 1
+
+#define SUPERVISOR 0
+#define USER       1
+
+#define READ_ONLY  0
+#define READ_WRITE 1
+
+#define PRESENT    1
+#define MEMORY     0
+
+#define PD_ATTR_K  1
+#define PT_ATTR_K  1
 
 /* Direcciones fisicas de directorios y tablas de paginas del KERNEL */
 /* -------------------------------------------------------------------------- */

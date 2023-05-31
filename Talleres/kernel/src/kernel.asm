@@ -21,6 +21,7 @@ extern IDT_DESC
 extern idt_init
 extern pic_reset
 extern pic_enable
+extern mmu_init_kernel_dir
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 ; estos son los mismos define que en cdt del defines.h
@@ -113,11 +114,20 @@ modo_protegido:
     ;Remapeo el PIC
     call pic_reset
 
-    ; Habiliti el PIC
+    ; Habilito el PIC
     call pic_enable
 
     ; Habilito las interrupciones
     sti
+
+    ; Mapeo direcciones
+    call mmu_init_kernel_dir
+    mov cr3, eax
+
+    ; Habilito la paginacion
+    mov ecx, cr0
+    or ecx, 0x80000000
+    mov cr0, ecx
    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF

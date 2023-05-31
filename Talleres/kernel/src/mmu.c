@@ -53,6 +53,12 @@ void mmu_init(void) {}
  * @return devuelve la dirección de memoria de comienzo de la próxima página libre de kernel
  */
 paddr_t mmu_next_free_kernel_page(void) {
+  if (next_free_kernel_page < identity_mapping_end) {
+    paddr_t ans = next_free_kernel_page;
+    next_free_kernel_page += PAGE_SIZE;
+    return ans;
+  }
+  return next_free_kernel_page;
 }
 
 /**
@@ -60,6 +66,12 @@ paddr_t mmu_next_free_kernel_page(void) {
  * @return devuelve la dirección de memoria de comienzo de la próxima página libre de usuarix
  */
 paddr_t mmu_next_free_user_page(void) {
+  if (next_free_user_page < user_memory_pool_end) {
+    paddr_t ans = next_free_user_page;
+    next_free_user_page += PAGE_SIZE;
+    return ans;
+  }
+  return next_free_user_page;
 }
 
 /**
@@ -69,6 +81,19 @@ paddr_t mmu_next_free_user_page(void) {
  * de páginas usado por el kernel
  */
 paddr_t mmu_init_kernel_dir(void) {
+  zero_page(kpd);
+  zero_page(kpt);
+
+  kpd[0].pt = KERNEL_PAGE_TABLE_0 >> 12;
+  kpd[0].attrs = PD_ATTR_K;
+
+  for(int i = 0; i < PAGE_SIZE; i++){
+    kpt[i].attrs = PT_ATTR_K;
+    kpt[i].page =  i;
+  }  
+
+
+  return kpd;
 }
 
 /**
@@ -80,6 +105,12 @@ paddr_t mmu_init_kernel_dir(void) {
  * @param attrs los atributos a asignar en la entrada de la tabla de páginas
  */
 void mmu_map_page(uint32_t cr3, vaddr_t virt, paddr_t phy, uint32_t attrs) {
+  uint32_t pd = CR3_TO_PAGE_DIR(cr3);
+  uint32_t pd_index = VIRT_PAGE_DIR(virt);
+  uint32_t pt = CR3_TO_PAGE_DIR(pd + pd_index);
+  uint32_t pt_index = VIRT_PAGE_TABLE(virt);
+  uint32_t page_addr = CR3_TO_PAGE_DIR(pt + pt_index);
+  phy = ((page_addr | VIRT_PAGE_OFFSET(virt)) << 12) | attrs; // PREGUNTAR
 }
 
 /**
@@ -88,7 +119,20 @@ void mmu_map_page(uint32_t cr3, vaddr_t virt, paddr_t phy, uint32_t attrs) {
  * @return la dirección física de la página desvinculada
  */
 paddr_t mmu_unmap_page(uint32_t cr3, vaddr_t virt) {
+  paddr_t pd = CR3_TO_PAGE_DIR(cr3);
+  paddr_t pd_index = VIRT_PAGE_DIR(virt);
+  paddr_t pt = CR3_TO_PAGE_DIR(pd + pd_index);
+  paddr_t pt_index = VIRT_PAGE_TABLE(virt);
+  pt_entry_t* pt_s = CR3_TO_PAGE_DIR(pd + pd_index);
 
+  paddr_t page_addr = CR3_TO_PAGE_DIR(pt + pt_index);
+  paddr_t phy = ((page_addr | VIRT_PAGE_OFFSET(virt)) << 12) | pt_s[pt_index].attrs;
+
+  // UNMAP
+  pt_s[pt_index].page  = 0;
+  pt_s[pt_index].attrs = 0;
+
+  return phy;
 }
 
 #define DST_VIRT_PAGE 0xA00000
