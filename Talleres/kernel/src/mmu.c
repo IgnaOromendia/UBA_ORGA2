@@ -85,13 +85,12 @@ paddr_t mmu_init_kernel_dir(void) {
   zero_page(kpt);
 
   kpd[0].pt =  MMU_ENTRY_PADDR(KERNEL_PAGE_TABLE_0);
-  kpd[0].attrs = PD_ATTR_K;
+  kpd[0].attrs = MMU_P;
 
   for(int i = 0; i < PAGE_SIZE; i++){
-    kpt[i].attrs = PT_ATTR_K;
+    kpt[i].attrs = MMU_W | MMU_P; // Presnete y r&w
     kpt[i].page =  i;
-  }  
-
+  }
 
   return kpd;
 }
@@ -106,13 +105,13 @@ paddr_t mmu_init_kernel_dir(void) {
  */
 void mmu_map_page(uint32_t cr3, vaddr_t virt, paddr_t phy, uint32_t attrs) {
   pd_entry_t* pd_s = CR3_TO_PAGE_DIR(cr3);
-  uint32_t pd_index = VIRT_PAGE_DIR(virt);
-  uint32_t pt_index = VIRT_PAGE_TABLE(virt);
+  paddr_t pd_index = VIRT_PAGE_DIR(virt);
+  paddr_t pt_index = VIRT_PAGE_TABLE(virt);
   pt_entry_t* pt_s;
   
   if ((pd_s[pd_index].attrs % 2) == 1) {
     // Presente en memoria
-    pt_s= pd_s[pd_index].pt;
+    pt_s = pd_s[pd_index].pt;
   } else {
     // No presente
     pt_s = mmu_next_free_kernel_page();
@@ -129,18 +128,16 @@ void mmu_map_page(uint32_t cr3, vaddr_t virt, paddr_t phy, uint32_t attrs) {
  * @return la dirección física de la página desvinculada
  */
 paddr_t mmu_unmap_page(uint32_t cr3, vaddr_t virt) {
-  paddr_t pd = CR3_TO_PAGE_DIR(cr3);
+  pd_entry_t* pd_s = CR3_TO_PAGE_DIR(cr3);
   paddr_t pd_index = VIRT_PAGE_DIR(virt);
-  paddr_t pt = CR3_TO_PAGE_DIR(pd + pd_index);
   paddr_t pt_index = VIRT_PAGE_TABLE(virt);
-  pt_entry_t* pt_s = CR3_TO_PAGE_DIR(pd + pd_index);
+  pt_entry_t* pt_s = pd_s[pd_index].pt;
 
-  paddr_t page_addr = CR3_TO_PAGE_DIR(pt + pt_index);
+  paddr_t page_addr = pt_s[pt_index].page;
   paddr_t phy = ((page_addr | VIRT_PAGE_OFFSET(virt)) << 12) | pt_s[pt_index].attrs;
 
   // UNMAP
-  pt_s[pt_index].page  = 0;
-  pt_s[pt_index].attrs = 0;
+  pt_s[pt_index].attrs = 0; // Con seteae esto en 0 ya decimos que no este presente
 
   return phy;
 }
@@ -157,12 +154,48 @@ paddr_t mmu_unmap_page(uint32_t cr3, vaddr_t virt) {
  * la copia y luego desmapea las páginas. Usar la función rcr3 definida en i386.h para obtener el cr3 actual
  */
 void copy_page(paddr_t dst_addr, paddr_t src_addr) {
+  uint32_t attrs_dst = dst_addr & 0xFFF;
+  uint32_t attrs_src = src_addr & 0xFFF;
+
+  mmu_map_page(rcr3(), DST_VIRT_PAGE, dst_addr, attrs_dst);
+  mmu_map_page(rcr3(), SRC_VIRT_PAGE, src_addr, attrs_src);
+
+  mmu_unmap_page(rcr3(), SRC_VIRT_PAGE);
 }
 
  /**
  * mmu_init_task_dir inicializa las estructuras de paginación vinculadas a una tarea cuyo código se encuentra en la dirección phy_start
- * @pararm phy_start es la dirección donde comienzan las dos páginas de código de la tarea asociada a esta llamada
+ * @param phy_start es la dirección donde comienzan las dos páginas de código de la tarea asociada a esta llamada
  * @return el contenido que se ha de cargar en un registro CR3 para la tarea asociada a esta llamada
  */
 paddr_t mmu_init_task_dir(paddr_t phy_start) {
+  paddr_t upd_addr = mmu_next_free_user_page();
+  paddr_t upt_addr = mmu_next_free_user_page();
+
+  pd_entry_t* upd = (pd_entry_t*)upd_addr;
+  pt_entry_t* upt = (pt_entry_t*)upt_addr;
+
+  // Limpiamos las páginas
+  zero_page(upd_addr);
+  zero_page(upt_addr);
+
+  // PD
+  upd[0].pt    = MMU_ENTRY_PADDR(upt_addr);
+  upd[1].attrs = MMU_U | MMU_P;
+
+  // Codigo
+  for(int i = 0; i < TASK_CODE_PAGES; i++){
+    upt[i].attrs = MMU_U | MMU_P;
+    upt[i].page =  MMU_ENTRY_PADDR(phy_start) + i;
+  }
+
+  // Stack
+  upt[2].attrs = MMU_U | MMU_W | MMU_P;
+  upt[2].page = TASK_STACK_BASE;
+
+  // Shared
+  upt[3].attrs = MMU_U | MMU_W | MMU_P;
+  upt[3].attrs = TASK_SHARED_PAGE;
+
+  lcr3(upd_addr & 0xFFFFF000);
 }

@@ -147,35 +147,8 @@ dir virt = |10 bits de Directorio| 10 bits de Table | 12 de Offset|
 // direccion virtual del codigo
 #define TASK_CODE_VIRTUAL 0x08000000
 #define TASK_CODE_PAGES   2
-#define TASK_STACK_BASE   0x08003000
+#define TASK_STACK_BASE   0x08002000
 #define TASK_SHARED_PAGE  0x08003000
-
-/* Atributos Paginación */
-/* -------------------------------------------------------------------------- */
-
-#define DIRTY      1
-#define CLEAN      0
-
-#define ACCESSED     1
-#define NOT_ACCESSED 0
-
-#define CACHE_DISABLED 1
-#define CACHE_ENABLE   0
-
-#define WRITE_THROUGH     0
-#define NOT_WRITE_THROUGH 1
-
-#define SUPERVISOR 0
-#define USER       1
-
-#define READ_ONLY  0
-#define READ_WRITE 1
-
-#define PRESENT    1
-#define MEMORY     0
-
-#define PD_ATTR_K  1
-#define PT_ATTR_K  1
 
 /* Direcciones fisicas de directorios y tablas de paginas del KERNEL */
 /* -------------------------------------------------------------------------- */
