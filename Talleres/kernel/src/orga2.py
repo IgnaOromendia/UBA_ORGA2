@@ -24,6 +24,27 @@ def load_descriptor_table(name, identifier):
 
     return base, size
 
+def load_tr():
+    # Cargo todos los registros según qemu
+    qemu_registers = gdb.execute('monitor info registers', to_string=True)
+    # Busco al tr:
+    descriptors = [reg for reg in qemu_registers.split('\n') if reg.startswith("TR")]
+    # Debería haber uno sólo, me quedo con ese
+    assert len(descriptors) == 1, f"Detectamos más de un tr"
+    tr_text  = descriptors[0]
+
+    # Parseo el texto de qemu
+    #   Formato esperado:
+    #   TR =0000 00000000 0000ffff 00008b00 DPL=0 TSS32-busy
+    #   <Selector>    <Base>   <Size>
+    (sel_text, base_text, segment_limit_text) = tr_text.split()[1:4]
+    selector_num = sel_text[1:]
+    selector = int(selector_num, 16)
+    base = int(base_text, 16)
+    limit  = int(segment_limit_text, 16) + 1 # +1 porque en realidad es el máximo offset
+
+    return selector, base, limit
+
 def format_address(addr):
     return gdb.execute(f'output/a 0x{addr:X}', to_string=True)
 
@@ -78,7 +99,42 @@ def print_descriptor_entry(table_name, gdt, index, formatter):
     row = formatter(entry_bytes)
     print(f'{table_name}[{index}] =', ' '.join(row))
 
-gdt_entry_types = [
+def is_gdt_entry_of_type_tss(entry_bytes):
+    entry = [int.from_bytes(b, 'little') for b in entry_bytes]
+    entry_type = entry[5] & 0x0F
+    return (entry_type == 9 or entry_type == 11)
+
+def print_tss(index):
+    inferior = gdb.selected_inferior()
+    current_tss_selector, current_tss_base, _ = load_tr()
+
+    # si index == -1 mostramos la tss del TR
+    if index == -1:
+        tss_base = current_tss_base
+        print(f'TSS for TR ({current_tss_selector:#x})')
+    # sino, mostramos la i-esima cargada en la gdt
+    else:
+        base, size = load_descriptor_table('gdtr', 'GDT')
+        addr = base + index * 8
+        gdt_entry_bytes = inferior.read_memory(addr, 8)
+
+        # primero chequeamos que sea un indice valido, osea que apunte a una TSS
+        if not is_gdt_entry_of_type_tss(gdt_entry_bytes):
+            print(f"El índice {index} no apunta a una TSS")
+            return
+
+        entry = [int.from_bytes(b, 'little') for b in gdt_entry_bytes]
+        tss_base = entry[7] << 24 | entry[4] << 16 | entry[3] << 8 | entry[2]
+
+        print(f'TSS for gdt[{index}]' + (' (currently loaded in TR)' if current_tss_selector >> 3 == index else ''))
+
+    tss_bytes = inferior.read_memory(tss_base, 104)
+    print(f'base={format_address(tss_base)}')
+    print_tss_entry(tss_bytes)
+
+# When the S (descriptor type) flag in a segment descriptor is set, the descriptor is for either a code or a data segment.
+# Entonces usamos esta tablita:
+gdt_entry_types_code_or_data = [
     'Read-Only',
     'Read-Only, accessed',
     'Read-Write',
@@ -97,8 +153,28 @@ gdt_entry_types = [
     'Execute/Read, conforming, accessed',
 ]
 
+# En cambio si S es 0, the descriptor type is a system descriptor. Entonces usamos esta tablita:
+gdt_entry_types_system = [
+    'Reserved',
+    '16-bit TSS (Available)',
+    'LDT',
+    '6-bit TSS (Busy)',
+    '16-bit Call Gate',
+    'Task Gate',
+    '16-bit Interrupt Gate',
+    '16-bit Trap Gate',
+    'Reserved',
+    '32-bit TSS (Available)',
+    'Reserved',
+    '32-bit TSS (Busy)',
+    '32-bit Call Gate',
+    'Reserved',
+    '32-bit Interrupt Gate',
+    '32-bit Trap Gate',
+]
+
 def format_gdt_entry(entry_bytes):
-        entry = [int.from_bytes(b, 'little') for b in entry_bytes]
+        entry = [int.from_bytes(b, 'little') for b in entry_bytes]                          # entry son 8 bytes
         entry_base = entry[7] << 24 | entry[4] << 16 | entry[3] << 8 | entry[2]
         entry_limit = (entry[6] & 0x0F) << 16 | entry[1] << 8 | entry[0]
         entry_type = entry[5] & 0x0F
@@ -111,16 +187,112 @@ def format_gdt_entry(entry_bytes):
         entry_g = bool(entry[6] & 0x80)
 
         return [f'Base: {format_address(entry_base)},',
-                f'Limit: {entry_limit:#x},',
-                ('page granularity,' if entry_g else 'byte granularity,'),
-                f'D/B: {int(entry_db)},',
+                (f'Limit: {entry_limit:#x},' if entry_s else f'Length: {entry_limit:#x},'),
+                (('page granularity,' if entry_g else 'byte granularity,') if entry_s else ''),  # en un TSS Descriptor G
+                (f'D/B: {int(entry_db)},' if entry_s else ''),              # en un TSS Descriptor el bit correspondiente a D/B esta siempre en 0
                 f'L: {int(entry_l)},',
                 ('available bit set,' if entry_a else 'available bit clear,'),
                 ('present,' if entry_p else 'not present,'),
                 f'DPL: {entry_dpl},',
-                ('System Segment,' if entry_s else 'Code/Data Segment,'),
-                f'Type: {gdt_entry_types[entry_type]}']
+                ('Code/Data Segment,' if entry_s else 'System Segment,'),
+                f'Type: {gdt_entry_types_code_or_data[entry_type]}' if entry_s else f'Type: {gdt_entry_types_system[entry_type]}']
 
+# TSS
+"""
+Comando info tss en Bochs muestra:
+tr:s=0x68, base=0x000079c0, valid=1
+ss:esp(0): 0x0018:0x00104000
+ss:esp(1): 0x0000:0x00000000
+ss:esp(2): 0x0000:0x00000000
+cr3: 0x00100000
+eip: 0x08000000
+eflags: 0x00000200
+cs: 0x0013 ds: 0x0023 ss: 0x0023
+es: 0x0023 fs: 0x0023 gs: 0x0023
+eax: 0x00000000  ebx: 0x00000000  ecx: 0x00000000  edx: 0x00000000
+esi: 0x00000000  edi: 0x00000000  ebp: 0x08003000  esp: 0x08003000
+ldt: 0x0000
+i/o map: 0x0000
+"""
+def format_address(addr):
+    return gdb.execute(f'output/a 0x{addr:X}', to_string=True)
+
+def print_tss_entry(entry_bytes):
+    def u32(offset):
+        return int.from_bytes(entry_bytes[offset:offset+4], 'little')
+
+    def u16(offset):
+        return int.from_bytes(entry_bytes[offset:offset+2], 'little')
+
+    task_link = u16(  0)
+    esp0      = u32(  4)
+    ss0       = u16(  8)
+    esp1      = u32( 12)
+    ss1       = u16( 16)
+    esp2      = u32( 20)
+    ss2       = u16( 24)
+    cr3       = u32( 28)
+    eip       = u32( 32)
+    eflags    = u32( 36)
+    eax       = u32( 40)
+    ecx       = u32( 44)
+    edx       = u32( 48)
+    ebx       = u32( 52)
+    esp       = u32( 56)
+    ebp       = u32( 60)
+    esi       = u32( 64)
+    edi       = u32( 68)
+    es        = u16( 72)
+    cs        = u16( 76)
+    ss        = u16( 80)
+    ds        = u16( 84)
+    fs        = u16( 88)
+    gs        = u16( 92)
+    ldt       = u16( 96)
+    io_map    = u16(102)
+
+    regs = [(ds, "ds"),
+            (es, "es"),
+            (fs, "fs"),
+            (cs, "cs"),
+            (ss, "ss"),
+            (gs, "gs"),
+            (eax, "eax"),
+            (ebx, "ebx"),
+            (ecx, "ecx"),
+            (edx, "edx"),
+            (esi, "esi"),
+            (edi, "edi"),
+            (ebp, "ebp"),
+            (esp, "esp")]
+
+    print(f'ss:esp(0): {ss0:#x}:{format_address(esp0)}')
+    print(f'ss:esp(1): {ss1:#x}:{format_address(esp1)}')
+    print(f'ss:esp(2): {ss2:#x}:{format_address(esp2)}')
+    print(f'cr3: {cr3:#x}')
+    print(f'eip: {format_address(eip)}')
+    print(f'eflags: {eflags:#x}')
+    print_tss_regs(regs)
+
+def print_tss_regs(all_regs):
+    formatted_regs = [(name, format_address(reg)) for reg, name in all_regs]
+
+    rows = []
+    idx = 0
+    while idx < len(formatted_regs):
+        row = ['|']
+        while idx < len(formatted_regs):
+            name, value = formatted_regs[idx]
+            row += (name, ':', value, '|')
+            idx += 1
+
+            if idx % 3 == 0:
+                break
+        rows.append(row)
+
+    print_table(rows)
+
+# IDT
 idt_entry_types = {
     0b00101: 'Task Gate',
     0b00110: 'Interrupt Gate (16 bits)',
@@ -128,6 +300,7 @@ idt_entry_types = {
     0b01111: 'Trap Gate (16 bits)',
     0b11111: 'Trap Gate (32 bits)',
 }
+
 def format_idt_entry(entry_bytes):
         entry = [int.from_bytes(b, 'little') for b in entry_bytes]
         entry_offset = entry[7] << 24 | entry[6] << 16 | entry[1] << 8 | entry[0]
@@ -168,6 +341,36 @@ class KernelReloadCommand(gdb.Command):
         gdb.execute('directory')
         gdb.execute(f'monitor change floppy0 {diskette} raw')
         gdb.execute('monitor system_reset')
+
+"""
+Comando info tss en Bochs muestra:
+tr:s=0x68, base=0x000079c0, valid=1
+ss:esp(0): 0x0018:0x00104000
+ss:esp(1): 0x0000:0x00000000
+ss:esp(2): 0x0000:0x00000000
+cr3: 0x00100000
+eip: 0x08000000
+eflags: 0x00000200
+cs: 0x0013 ds: 0x0023 ss: 0x0023
+es: 0x0023 fs: 0x0023 gs: 0x0023
+eax: 0x00000000  ebx: 0x00000000  ecx: 0x00000000  edx: 0x00000000
+esi: 0x00000000  edi: 0x00000000  ebp: 0x08003000  esp: 0x08003000
+ldt: 0x0000
+i/o map: 0x0000
+"""
+class InfoTSSCommand(gdb.Command):
+    """Shows the currently loaded TSS
+    info tss -- Show TSS currently loaded in the Task Register
+    info tss [idx] -- Show the i-th TSS"""
+    def __init__(self):
+        super().__init__('info tss', gdb.COMMAND_STATUS, gdb.COMPLETE_NONE, False)
+
+    def invoke(self, argument, from_tty):
+        if argument == '':
+            print_tss(-1)
+        else:
+            index = gdb.parse_and_eval(argument)
+            print_tss(index)
 
 class InfoGDTCommand(gdb.Command):
     """Shows the currently loaded GDT
@@ -211,6 +414,7 @@ KernelCommand()
 KernelReloadCommand()
 InfoGDTCommand()
 InfoIDTCommand()
+InfoTSSCommand()
 
 class GDTPrinter:
     def __init__(self, val):
@@ -499,7 +703,6 @@ class InfoPageTableCommand(gdb.Command):
 InfoPageCommand()
 InfoPageDirectoryCommand()
 InfoPageTableCommand()
-
 
 class XPCommand(gdb.Command):
     """Shows present entries for the given page table"""
