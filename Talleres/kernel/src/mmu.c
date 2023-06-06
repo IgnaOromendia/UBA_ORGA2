@@ -114,7 +114,9 @@ void mmu_map_page(uint32_t cr3, vaddr_t virt, paddr_t phy, uint32_t attrs) {
     pt_s = pd_s[pd_index].pt;
   } else {
     // No presente
-    pt_s = mmu_next_free_kernel_page();
+    pd_s[pd_index].pt = mmu_next_free_kernel_page();
+    pd_s[pd_index].attrs = MMU_P;
+    pt_s = pd_s[pd_index].pt;
   }
 
   // Asignamos página
