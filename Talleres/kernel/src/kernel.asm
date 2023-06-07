@@ -22,6 +22,8 @@ extern idt_init
 extern pic_reset
 extern pic_enable
 extern mmu_init_kernel_dir
+extern copy_page
+extern mmu_init_task_dir
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 ; estos son los mismos define que en cdt del defines.h
@@ -128,6 +130,15 @@ modo_protegido:
     mov ecx, cr0
     or ecx, 0x80000000
     mov cr0, ecx
+
+    mov edi, 0x18000
+    sub esp, 4
+    push edi
+    call mmu_init_task_dir
+    mov cr3, eax
+    pop edi
+    add esp, 4
+
    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF

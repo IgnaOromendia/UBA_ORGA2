@@ -87,7 +87,7 @@ paddr_t mmu_init_kernel_dir(void) {
   kpd[0].pt =  MMU_ENTRY_PADDR(KERNEL_PAGE_TABLE_0);
   kpd[0].attrs = MMU_P;
 
-  for(int i = 0; i < PAGE_SIZE; i++){
+  for(int i = 0; i < 1024; i++){
     kpt[i].attrs = MMU_W | MMU_P; // Presnete y r&w
     kpt[i].page =  i;
   }
@@ -122,6 +122,8 @@ void mmu_map_page(uint32_t cr3, vaddr_t virt, paddr_t phy, uint32_t attrs) {
   // Asignamos página
   pt_s[pt_index].page = MMU_ENTRY_PADDR(phy);
   pt_s[pt_index].attrs = attrs;
+
+  tlbflush();
 }
 
 /**
@@ -135,11 +137,13 @@ paddr_t mmu_unmap_page(uint32_t cr3, vaddr_t virt) {
   paddr_t pt_index = VIRT_PAGE_TABLE(virt);
   pt_entry_t* pt_s = pd_s[pd_index].pt;
 
-  paddr_t page_addr = pt_s[pt_index].page;
-  paddr_t phy = ((page_addr | VIRT_PAGE_OFFSET(virt)) << 12) | pt_s[pt_index].attrs;
+  paddr_t page_addr = pt_s[pt_index].page << 12;
+  paddr_t phy = (page_addr | VIRT_PAGE_OFFSET(virt));
 
   // UNMAP
   pt_s[pt_index].attrs = 0; // Con seteae esto en 0 ya decimos que no este presente
+
+  tlbflush();
 
   return phy;
 }
@@ -159,10 +163,20 @@ void copy_page(paddr_t dst_addr, paddr_t src_addr) {
   uint32_t attrs_dst = dst_addr & 0xFFF;
   uint32_t attrs_src = src_addr & 0xFFF;
 
-  mmu_map_page(rcr3(), DST_VIRT_PAGE, dst_addr, attrs_dst);
-  mmu_map_page(rcr3(), SRC_VIRT_PAGE, src_addr, attrs_src);
+  uint32_t cr3 = rcr3();
 
-  mmu_unmap_page(rcr3(), SRC_VIRT_PAGE);
+  mmu_map_page(cr3, DST_VIRT_PAGE, dst_addr, attrs_dst);
+  mmu_map_page(cr3, SRC_VIRT_PAGE, src_addr, attrs_src);
+
+  paddr_t* ptr_dst = DST_VIRT_PAGE;
+  paddr_t* ptr_src = SRC_VIRT_PAGE;
+
+  for(int i=0;i<PAGE_SIZE;i++) {
+    ptr_dst[i] = ptr_src[i];
+  }
+
+  mmu_unmap_page(cr3, SRC_VIRT_PAGE);
+  mmu_unmap_page(cr3, DST_VIRT_PAGE);
 }
 
  /**
@@ -171,8 +185,8 @@ void copy_page(paddr_t dst_addr, paddr_t src_addr) {
  * @return el contenido que se ha de cargar en un registro CR3 para la tarea asociada a esta llamada
  */
 paddr_t mmu_init_task_dir(paddr_t phy_start) {
-  paddr_t upd_addr = mmu_next_free_user_page();
-  paddr_t upt_addr = mmu_next_free_user_page();
+  paddr_t upd_addr = mmu_next_free_kernel_page();
+  paddr_t upt_addr = mmu_next_free_kernel_page();
 
   pd_entry_t* upd = (pd_entry_t*)upd_addr;
   pt_entry_t* upt = (pt_entry_t*)upt_addr;
@@ -183,21 +197,24 @@ paddr_t mmu_init_task_dir(paddr_t phy_start) {
 
   // PD
   upd[0].pt    = MMU_ENTRY_PADDR(upt_addr);
-  upd[1].attrs = MMU_U | MMU_P;
+  upd[0].attrs = MMU_U | MMU_P;
 
-  // Codigo
-  for(int i = 0; i < TASK_CODE_PAGES; i++){
-    upt[i].attrs = MMU_U | MMU_P;
-    upt[i].page =  MMU_ENTRY_PADDR(phy_start) + i;
+  // kernel
+  for(int i = 0; i < 1024; i++){
+    mmu_map_page(upd_addr, i * PAGE_SIZE, i * PAGE_SIZE, MMU_P);
   }
 
+  // Codigo
+  mmu_map_page(upd_addr, TASK_CODE_VIRTUAL, phy_start, MMU_U | MMU_P);
+  mmu_map_page(upd_addr, TASK_CODE_VIRTUAL + PAGE_SIZE, phy_start + PAGE_SIZE, MMU_U | MMU_P);
+
   // Stack
-  upt[2].attrs = MMU_U | MMU_W | MMU_P;
-  upt[2].page = TASK_STACK_BASE;
+  paddr_t user_page_addr = mmu_next_free_user_page();
+  mmu_map_page(upd_addr, TASK_STACK_BASE, user_page_addr, MMU_U | MMU_W | MMU_P);
 
   // Shared
-  upt[3].attrs = MMU_U | MMU_W | MMU_P;
-  upt[3].attrs = TASK_SHARED_PAGE;
+  paddr_t kernel_page_addr = mmu_next_free_kernel_page();
+  mmu_map_page(upd_addr, TASK_SHARED_PAGE, kernel_page_addr, MMU_U | MMU_P);
 
-  lcr3(upd_addr & 0xFFFFF000);
+  return upd_addr;
 }
