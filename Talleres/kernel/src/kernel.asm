@@ -9,9 +9,10 @@
 ; target remote localhost:1234
 ; b kenrel.asm:
 
-%include "print.mac" 
+%include "print.mac"
 
 global start
+
 
 ; COMPLETAR - Agreguen declaraciones extern según vayan necesitando
 extern A20_enable
@@ -24,11 +25,14 @@ extern pic_enable
 extern mmu_init_kernel_dir
 extern copy_page
 extern mmu_init_task_dir
+extern tss_init
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 ; estos son los mismos define que en cdt del defines.h
-%define CS_RING_0_SEL (1 << 3)
-%define DS_RING_0_SEL (3 << 3)
+%define CS_RING_0_SEL 0x08 ; es 0x08 porque es el GDT_IDX_CODE_0(1) << 3
+%define DS_RING_0_SEL 0x18 ; es 0x18 porque es el GDT_IDX_DATA_0(3) << 3
+%define GDT_IDX_TASK_INITIAL 11 << 3
+%define GDT_IDX_TASK_IDLE 12 << 3
 
 BITS 16
 ;; Saltear seccion de datos
@@ -63,22 +67,20 @@ start:
     ; COMPLETAR - Imprimir mensaje de bienvenida - MODO REAL
     ; (revisar las funciones definidas en print.mac y los mensajes se encuentran en la
     ; sección de datos)
-    print_text_rm start_rm_msg, start_rm_len, 0x70, 0, 0
+    print_text_rm start_rm_msg, start_rm_len, 0x07, 0, 0
 
     ; COMPLETAR - Habilitar A20
     ; (revisar las funciones definidas en a20.asm)
     call A20_enable
 
     ; COMPLETAR - Cargar la GDT
-    ; Carga los valores de src en el GDTR, en este caso un struct contiene el address y el tamaño
     lgdt [GDT_DESC]
 
     ; COMPLETAR - Setear el bit PE del registro CR0
-    ; Tenemos que modificarlo y poner el bit 0 en 1 para activar el modo protegido
-    ; Los registros de control no son de proposito general
-    mov eax, cr0
-    or eax, 1
+    push eax
+    mov eax, 1
     mov cr0, eax
+    pop eax
 
     ; COMPLETAR - Saltar a modo protegido (far jump)
     ; (recuerden que un far jmp se especifica como jmp CS_selector:address)
@@ -87,7 +89,7 @@ start:
 
 BITS 32
 modo_protegido:
-    ; COMPLETAR - A partir de aca, todo el codigo se va a ejectutar en modo protegido
+    ; COMPLETAR - A partir de aca, to do el codigo se va a ejectutar en modo protegido
     ; Establecer selectores de segmentos DS, ES, GS, FS y SS en el segmento de datos de nivel 0
     ; Pueden usar la constante DS_RING_0_SEL definida en este archivo
     mov ax, DS_RING_0_SEL
@@ -98,47 +100,47 @@ modo_protegido:
     mov ss, ax
 
     ; COMPLETAR - Establecer el tope y la base de la pila
-    mov ebp, 0x25000
     mov esp, 0x25000
+    mov ebp, esp
 
-    ; COMPLETAR - Imprimir mensaje de bienvenida - MODO PROTEGIDO
-    print_text_pm start_pm_msg, start_pm_len, 0x70, 0, 0
-
-    ; COMPLETAR - Inicializar pantalla
-    call screen_draw_layout
-
-    ; Inicializo la IDT
+    ; TALLER 6
+    ; Inicializamos la IDT
     call idt_init
-
-    ; Cargo la IDT
+    ; Cargamos la IDT
     lidt [IDT_DESC]
-
-    ;Remapeo el PIC
+    ;Remapeamos el PIC
     call pic_reset
-
-    ; Habilito el PIC
+    ; Habilitamos el PIC
     call pic_enable
-
-    ; Habilito las interrupciones
+    ; Habilitamos las interrupciones
     sti
 
-    ; Mapeo direcciones
+    ; COMPLETAR - Imprimir mensaje de bienvenida - MODO PROTEGIDO
+    print_text_pm start_pm_msg, start_pm_len, 0x07, 2, 0
+
+    ; Inicializamos el registro cr3
     call mmu_init_kernel_dir
     mov cr3, eax
 
-    ; Habilito la paginacion
+    ; Habilitamos la paginacion
     mov ecx, cr0
     or ecx, 0x80000000
     mov cr0, ecx
 
+    xor edi, edi
     mov edi, 0x18000
-    sub esp, 4
-    push edi
-    call mmu_init_task_dir
-    mov cr3, eax
-    pop edi
-    add esp, 4
 
+    call mmu_init_task_dir
+
+    call screen_draw_layout
+
+    ; Inicializamos la tss con las tareas idle e init
+    call tss_init
+
+    ; Cargamos la tarea inicial
+    mov ax, GDT_IDX_TASK_INITIAL
+    ltr ax
+    jmp GDT_IDX_TASK_IDLE:0
    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF

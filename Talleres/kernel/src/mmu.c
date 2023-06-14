@@ -85,11 +85,12 @@ paddr_t mmu_init_kernel_dir(void) {
   zero_page(kpt);
 
   kpd[0].pt =  MMU_ENTRY_PADDR(KERNEL_PAGE_TABLE_0);
-  kpd[0].attrs = MMU_P;
+  kpd[0].attrs = MMU_W | MMU_P;
 
   for(int i = 0; i < 1024; i++){
     kpt[i].attrs = MMU_W | MMU_P; // Presnete y r&w
     kpt[i].page =  i;
+    //mmu_map_page(KERNEL_PAGE_DIR, i * PAGE_SIZE, i * PAGE_SIZE, MMU_W | MMU_P)
   }
 
   return kpd;
@@ -109,15 +110,12 @@ void mmu_map_page(uint32_t cr3, vaddr_t virt, paddr_t phy, uint32_t attrs) {
   paddr_t pt_index = VIRT_PAGE_TABLE(virt);
   pt_entry_t* pt_s;
   
-  if ((pd_s[pd_index].attrs % 2) == 1) {
-    // Presente en memoria
-    pt_s = pd_s[pd_index].pt;
-  } else {
+  if ((pd_s[pd_index].attrs % 2) != 1) {
     // No presente
-    pd_s[pd_index].pt = mmu_next_free_kernel_page();
-    pd_s[pd_index].attrs = MMU_P;
-    pt_s = pd_s[pd_index].pt;
+    pd_s[pd_index].pt = MMU_ENTRY_PADDR(mmu_next_free_kernel_page());
+    pd_s[pd_index].attrs = MMU_P | MMU_U | MMU_W;
   }
+  pt_s = pd_s[pd_index].pt << 12;
 
   // Asignamos página
   pt_s[pt_index].page = MMU_ENTRY_PADDR(phy);
@@ -186,31 +184,22 @@ void copy_page(paddr_t dst_addr, paddr_t src_addr) {
  */
 paddr_t mmu_init_task_dir(paddr_t phy_start) {
   paddr_t upd_addr = mmu_next_free_kernel_page();
-  paddr_t upt_addr = mmu_next_free_kernel_page();
-
-  pd_entry_t* upd = (pd_entry_t*)upd_addr;
-  pt_entry_t* upt = (pt_entry_t*)upt_addr;
 
   // Limpiamos las páginas
   zero_page(upd_addr);
-  zero_page(upt_addr);
-
-  // PD
-  upd[0].pt    = MMU_ENTRY_PADDR(upt_addr);
-  upd[0].attrs = MMU_U | MMU_P;
 
   // kernel
   for(int i = 0; i < 1024; i++){
-    mmu_map_page(upd_addr, i * PAGE_SIZE, i * PAGE_SIZE, MMU_P);
+    mmu_map_page(upd_addr, i * PAGE_SIZE, i * PAGE_SIZE, MMU_W |MMU_P);
   }
 
   // Codigo
-  mmu_map_page(upd_addr, TASK_CODE_VIRTUAL, phy_start, MMU_U | MMU_P);
-  mmu_map_page(upd_addr, TASK_CODE_VIRTUAL + PAGE_SIZE, phy_start + PAGE_SIZE, MMU_U | MMU_P);
+  mmu_map_page(upd_addr, TASK_CODE_VIRTUAL, phy_start, MMU_U | MMU_W | MMU_P);
+  mmu_map_page(upd_addr, TASK_CODE_VIRTUAL + PAGE_SIZE, phy_start + PAGE_SIZE, MMU_U | MMU_W  | MMU_P);
 
   // Stack
   paddr_t user_page_addr = mmu_next_free_user_page();
-  mmu_map_page(upd_addr, TASK_STACK_BASE, user_page_addr, MMU_U | MMU_W | MMU_P);
+  mmu_map_page(upd_addr, TASK_STACK_BASE - PAGE_SIZE, user_page_addr, MMU_U | MMU_W | MMU_P);
 
   // Shared
   paddr_t kernel_page_addr = mmu_next_free_kernel_page();

@@ -134,9 +134,9 @@ Sharpen_asm:
 
             ; multiplicamos xmm4 y xmm5 por 9
             psllw xmm4, 3       ; multiplico por 2^4=8
-            paddw xmm4, xmm2    ; le sumamos 1 => 8+1=9
+            paddw xmm4, xmm2    ; le sumamos 1 => 8+1=9 ; si comento aca hace color blanco negro
             psllw xmm5, 3
-            paddw xmm5, xmm3
+            paddw xmm5, xmm3                            ; si comento aca hace color blanco negro
 
             ; aplicamos mascara
             ; cortamos los pixeles no deseados

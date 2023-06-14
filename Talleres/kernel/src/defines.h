@@ -5,6 +5,7 @@
 
   Definiciones globales del sistema.
 */
+#include "task_defines.h"
 
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
@@ -99,10 +100,11 @@
 #define GDT_BASE_HIGH(base) (uint8_t)((((uint32_t)(base)) >> 24) & 0xFF)
 
 /* COMPLETAR - Valores de atributos */ 
-#define DESC_CODE_DATA         (uint8_t)(1)
-#define DESC_SYSTEM            (uint8_t)(0)
-#define DESC_TYPE_EXECUTE_READ (uint8_t)(10)
-#define DESC_TYPE_READ_WRITE   (uint8_t)(2)
+#define DESC_TYPE_EXECUTE_READ 0xA
+#define DESC_TYPE_READ_WRITE   0x2
+#define DESC_TYPE_32BIT_TSS    0x9
+#define DESC_CODE_DATA 1
+#define DESC_SYSTEM    0
 
 /* COMPLETAR - Tamaños de segmentos */ 
 #define FLAT_SEGM_SIZE  (uint32_t)((1 << 20) * 817)
