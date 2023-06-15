@@ -26,6 +26,8 @@ extern mmu_init_kernel_dir
 extern copy_page
 extern mmu_init_task_dir
 extern tss_init
+extern sched_init
+extern tasks_init
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 ; estos son los mismos define que en cdt del defines.h
@@ -138,9 +140,18 @@ modo_protegido:
     call tss_init
 
     ; Cargamos la tarea inicial
-    mov ax, GDT_IDX_TASK_INITIAL
-    ltr ax
-    jmp GDT_IDX_TASK_IDLE:0
+    ;mov ax, GDT_IDX_TASK_INITIAL
+    ;ltr ax
+    ;jmp GDT_IDX_TASK_IDLE:0
+
+    ; Inicializamos el scheduler
+    call sched_init
+
+    ; Cargamos las tareas
+    call tasks_init
+
+    
+
    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF

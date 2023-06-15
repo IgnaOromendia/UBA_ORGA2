@@ -54,7 +54,7 @@ int8_t sched_add_task(uint16_t selector) {
     if (sched_tasks[i].state == TASK_SLOT_FREE) {
       sched_tasks[i] = (sched_entry_t) {
         .selector = selector,
-	.state = TASK_PAUSED,
+	      .state = TASK_PAUSED,
       };
       return i;
     }
