@@ -28,6 +28,7 @@ extern mmu_init_task_dir
 extern tss_init
 extern sched_init
 extern tasks_init
+extern tasks_screen_draw
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 ; estos son los mismos define que en cdt del defines.h
@@ -105,18 +106,6 @@ modo_protegido:
     mov esp, 0x25000
     mov ebp, esp
 
-    ; TALLER 6
-    ; Inicializamos la IDT
-    call idt_init
-    ; Cargamos la IDT
-    lidt [IDT_DESC]
-    ;Remapeamos el PIC
-    call pic_reset
-    ; Habilitamos el PIC
-    call pic_enable
-    ; Habilitamos las interrupciones
-    sti
-
     ; COMPLETAR - Imprimir mensaje de bienvenida - MODO PROTEGIDO
     print_text_pm start_pm_msg, start_pm_len, 0x07, 2, 0
 
@@ -134,15 +123,8 @@ modo_protegido:
 
     call mmu_init_task_dir
 
-    call screen_draw_layout
-
     ; Inicializamos la tss con las tareas idle e init
     call tss_init
-
-    ; Cargamos la tarea inicial
-    ;mov ax, GDT_IDX_TASK_INITIAL
-    ;ltr ax
-    ;jmp GDT_IDX_TASK_IDLE:0
 
     ; Inicializamos el scheduler
     call sched_init
@@ -150,8 +132,27 @@ modo_protegido:
     ; Cargamos las tareas
     call tasks_init
 
-    
+    ; TALLER 6
+    ; Inicializamos la IDT
+    call idt_init
+    ; Cargamos la IDT
+    lidt [IDT_DESC]
+    ;Remapeamos el PIC
+    call pic_reset
+    ; Habilitamos el PIC
+    call pic_enable
 
+    call tasks_screen_draw
+
+    ; Habilitamos las interrupciones
+    sti
+
+    ; Cargamos la tarea inicial
+    mov ax, GDT_IDX_TASK_INITIAL
+    ltr ax
+    jmp GDT_IDX_TASK_IDLE:0
+
+   
    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF
