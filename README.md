@@ -16,4 +16,4 @@ Lic. en Ciencias de la Computación - FCEN - UBA\
         - [Ejercicio 2](Parciales/Primer%20Parcial/ej2/ej2.asm)
     - Ejercicio Pre-Parcial:
         - [Primer Parcial](parciales/Practica%20Primer%20Parcial/)
-        - [Primer Parcial](parciales/Practica%20Segundo%20Parcial/)
+        - [Segundo Parcial](parciales/Practica%20Segundo%20Parcial/)
