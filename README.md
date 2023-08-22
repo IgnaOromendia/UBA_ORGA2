@@ -4,7 +4,6 @@ Lic. en Ciencias de la Computación - FCEN - UBA\
 1er cuatrimestre 2023
 
 ## Índice
-
 - Talleres:
     - [Assembler](Talleres/Taller-3/src/)
     - [SIMD](Talleres/Taller-4/src/)
